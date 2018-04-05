@@ -1,0 +1,16 @@
+INPUT(
+./debug/main.o
+./debug/mainwindow.o
+./debug/datamanager.o
+./debug/deckmanager.o
+./debug/card.o
+./debug/koreancard.o
+./debug/studysession.o
+./debug/cardlist.o
+./debug/studyclock.o
+./debug/grammarpuller.o
+./debug/statinfo.o
+./debug/graph.o
+./debug/moc_mainwindow.o
+./debug/moc_graph.o
+);

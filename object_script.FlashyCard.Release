@@ -1,0 +1,16 @@
+INPUT(
+./release/main.o
+./release/mainwindow.o
+./release/datamanager.o
+./release/deckmanager.o
+./release/card.o
+./release/koreancard.o
+./release/studysession.o
+./release/cardlist.o
+./release/studyclock.o
+./release/grammarpuller.o
+./release/statinfo.o
+./release/graph.o
+./release/moc_mainwindow.o
+./release/moc_graph.o
+);

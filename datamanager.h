@@ -1,0 +1,66 @@
+#ifndef DATAMANAGER_H
+#define DATAMANAGER_H
+#include <QtSql>
+#include <QtDebug>
+#define CODELENGTH 6
+#define STANDARDDAILY 20
+struct statData{
+    int completed;
+    int attempted;
+    int newCards;
+    int pastAvg;
+    QTime studyTime;
+    int strong, learning, longlearning, longstruggle, newStrong, newWeak;
+};
+
+class DataManager
+{
+public:
+    DataManager();
+    QSqlQuery getDecks();
+    bool createDeck(QString name, int maxInterval, int dailyUpdates);
+    bool addCard(QString deck, QString front, QString back);
+    bool fastAddCard(QString deck, QString front, QString back, QString sound, int unit, int index);
+    int fastIndex(QString deck);
+    int getCurrentDue(QString deck);
+    int getDailyDue(QString deck);
+    void setDailyDue(QString deck, int numDue);
+    void checkDailyReset();
+    QSqlQuery getTodaysStats();
+    void setInactive(QString deck, int unit);
+    void setActive(QString deck, int unit);
+    QString getDictFile(QString deck);
+    int getDueTotal(QString deck);
+    int getCardTotal(QString deck);
+    int getSeenTotal(QString deck);
+    QSqlQuery getSession(QString deck);
+    bool updateDue(int newAverage, int newInterval, int newAttempts, int newStage, QString id);
+    void updateMaxInterval(QString deck);
+    bool updateHint(QString hint, QString code);
+    QSqlQuery getAllCards(QString deck);
+    QStringList getUnits(QString deck);
+    int getInterval(QString deck);
+    void addDaysToStats();
+    QSqlQuery getAllActive();
+    void updateCardLevels(int strong, int learning, int longLearning, int longStruggle, int newStrong, int newWeak);
+    void updateStats(int attempted, int correct, int avgPercent, int newCards, QTime studyTime);
+    QList<statData> getHistory(QDate start );
+private:
+    bool tableCreation();
+    QSqlDatabase db;
+    bool createDeckTable();
+    bool createCardTable();
+    bool createStatTable();
+    void checkTodayStat(QString date);
+    void reFillStats(QStringList days, QDate first);
+    QString getCode(QString table, QString row);
+    QString genCode();
+    QString getDate();
+    void printError(QSqlQuery query);
+    void getLastIndex(QString deck, int * index, int * unit);
+    void updateNumLeft(QString deck, int newNum);
+    int getType(QString back);
+    int MAXINTERVAL;
+};
+
+#endif // DATAMANAGER_H
