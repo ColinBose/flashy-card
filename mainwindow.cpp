@@ -163,7 +163,7 @@ void MainWindow::on_mainDeckManager_clicked()
     }
     QString deckName = ui->mainDeckView->item(row, 0)->text();
     deckM.loadDeck(deckName);
-    ui->deckManagerTitle->setText(deckName);
+    ui->deckTitle->setText(deckName);
     curDeck = deckName;
     setPage(DECKMANAGER);
 }
@@ -174,7 +174,7 @@ void MainWindow::setPage(int i){
 
 void MainWindow::on_deckManagerAddCard_clicked()
 {
-    ui->addCardTitle->setText(deckM.getDeck());
+    ui->deckTitle->setText(deckM.getDeck());
     setPage(ADDCARD);
 }
 
@@ -274,10 +274,7 @@ void MainWindow::on_importImportButotn_clicked()
 void MainWindow::on_mainStudy_clicked()
 {
 
-    Graph * grapher = new Graph();
-    grapher->setData(&db);
-    grapher->exec();
-    return;
+
     int row = ui->mainDeckView->selectionModel()->currentIndex().row();
     if(row == -1){
         return;
@@ -295,7 +292,7 @@ void MainWindow::loadDeckSummary(){
     total = db.getCardTotal(deck);
     seen = db.getSeenTotal(deck);
     db.updateMaxInterval(deck);
-    ui->deckSumTitle->setText(deck);
+    ui->deckTitle->setText(deck);
     ui->deckSumSeen->setText(QString::number(seen));
     ui->deckSumToday->setText(QString::number(due));
     ui->deckSumTotal->setText(QString::number(total));
@@ -330,7 +327,7 @@ void MainWindow::on_deckSummaryStudy_clicked()
         return;
 
     study.loadGrammar(db);
-    QString deckName = ui->deckSumTitle->text();
+    QString deckName = ui->deckTitle->text();
     int interval = db.getInterval(deckName);
     study.setMaxInterval(interval);
 
@@ -338,10 +335,10 @@ void MainWindow::on_deckSummaryStudy_clicked()
     setTodayStat(result);
 
     setPage(STUDY);
-    if(study.isSentences())
-        ui->studySentenceCheck->setChecked(true);
-    else
-        ui->studySentenceCheck->setChecked(false);
+  //  if(study.isSentences())
+    //    ui->studySentenceCheck->setChecked(true);
+    //else
+      //  ui->studySentenceCheck->setChecked(false);
 
     singleStudyLoadQuestion();
     threadStarter();
@@ -363,7 +360,12 @@ void MainWindow::on_studyAnswerButton_clicked()
         QString answer = ui->studyAnswerEdit->text();
         if(answer.length() == 0)
             return;
-        answerString = study.evalAnswer(*curCard,answer, ui->studySentenceCheck->isChecked(), &answerVal, ui->studyHintLabel->text());
+
+        bool sentence;
+        sentence = study.checkSentence(curCard->back);
+        if(sentence)
+            qDebug() << "Doing sentence eval";
+        answerString = study.evalAnswer(*curCard,answer, sentence, &answerVal, ui->studyHintLabel->text());
 
         dealWithAnswer(answer, answerVal, answerString);
 
@@ -571,8 +573,8 @@ void MainWindow::on_studyScoreSlider_sliderMoved(int position)
 
 void MainWindow::on_deckManagerCollection_clicked()
 {
-    QString deck = ui->deckManagerTitle->text();
-    ui->collectionDeckTitle->setText(deck);
+    QString deck = ui->deckTitle->text();
+    ui->deckTitle->setText(deck);
     setPage(COLLECTION);
     loadCollection(deck);
 }

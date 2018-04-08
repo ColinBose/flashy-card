@@ -260,3 +260,10 @@ void StudySession::clean(){
     session.clear();
     gram.cleanUp();
 }
+bool StudySession::checkSentence(QString back){
+    for(int i = 0; i < back.length(); i++){
+        if(back[i] ==  ' ')
+            return true;
+    }
+    return false;
+}

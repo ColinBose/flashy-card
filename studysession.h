@@ -29,6 +29,7 @@ public:
     void clean();
     void setMaxInterval(int interval);
     int maxInterval;
+    bool checkSentence(QString back);
 private:
     QString deckName;
     GrammarPuller gram;
