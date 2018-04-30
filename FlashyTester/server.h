@@ -20,6 +20,7 @@
 #include "limits.h"
 #include "readevents.h"
 #include "multimanager.h"
+#include <QFile>
 
 class Server
 {
@@ -36,4 +37,5 @@ void * eventHandler(void * args);
 void * startMultiPoll(void * args);
 void epollRemove(int fd);
 void * joinerThread(void * args);
+void loadConfig();
 #endif // SERVER_H
