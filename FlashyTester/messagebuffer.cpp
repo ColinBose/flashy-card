@@ -49,8 +49,7 @@ QStringList MessageBuffer::putData(char buff[], int len, int sock){
         }
     }
     sem_post(&dataLock);
-    for(int i = 0; i < retPackets.length(); i++)
-        qDebug() << retPackets[i];
+
     return retPackets;
 
 }
