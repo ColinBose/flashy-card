@@ -217,6 +217,8 @@ private:
     LoginMenu * menu = 0;
     Friends * friendMenu = 0;
 
+
+    QString serverIp, serverPort;
     int gameFirstGuess, gameSecondGuess;
     bool guessMade = false;
     bool multiStudy = false;
@@ -265,6 +267,7 @@ private:
     void updateStats();
     void setupScoreTable();
     void clearAllStudy();
+    void loadConfig();
 
 };
 void threadStarter();

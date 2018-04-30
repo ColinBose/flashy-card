@@ -2,8 +2,8 @@
 #include "ui_mainwindow.h"
 #include "cardlist.h"
 #define SERVERIP "127.0.0.1"
-#define SERVERPORT 7000
-
+#define SERVERPORT "7000"
+#define CONFIGFILE "conf.txt"
 StudyClock * c;
 StudyClock * countdownClock;
 MultiManager networkedManager;
@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     countdownClock = new StudyClock(this);
     networkedManager.setData(&db, this);
     loadGameButtons();
+    loadConfig();
   //  loadGame();
 }
 
@@ -966,7 +967,7 @@ void MainWindow::on_mainStatsButton_clicked()
 void MainWindow::on_mainConnect_clicked()
 {
     int fd;
-    fd = connectTCPSocket(SERVERPORT,SERVERIP);
+    fd = connectTCPSocket(serverPort.toInt(),(char *)serverIp.toStdString().c_str());
     if(fd == -1){
         displayMessage("Error connecting to server");
         return;
@@ -1575,4 +1576,23 @@ void MainWindow::on_mainMainReturn_clicked()
 
 
     returnToMain();
+}
+void MainWindow::loadConfig(){
+    QFile f(CONFIGFILE);
+
+    if(!f.open(QIODevice::ReadOnly)){
+        qDebug() << "Error loading config file";
+        serverPort = SERVERPORT;
+        serverIp = SERVERIP;
+        return;
+    }
+    QString line = f.readLine();
+    line = line.left(line.length()-1);
+    serverIp = line;
+    serverIp += '\0';
+    line = f.readLine();
+    line = line.left(line.length()-1);
+    serverPort = line;
+
+    f.close();
 }

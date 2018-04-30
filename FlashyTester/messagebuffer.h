@@ -5,6 +5,7 @@
 #include <QString>
 #include <stdio.h>
 #include <QStringList>
+#include <semaphore.h>
 class MessageBuffer
 {
 public:
@@ -16,6 +17,7 @@ public:
 private:
     char buffer[MAXCLIENTS * MAXMESSAGE];
     int pointerLocation[MAXCLIENTS];
+    sem_t dataLock;
 
 };
 

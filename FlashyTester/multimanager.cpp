@@ -1,4 +1,6 @@
 #include "multimanager.h"
+#include "stdlib.h"
+#include "math.h"
 QString PACKDESC[] = {"EXPREQ", "EXPDAT", "DCKLST", "EXPRSP", "INPDAT", "DCKRSP", "IMPREQ",
                       "IMPDAT", "MLTREQ", "MLTRSP", "MLTNEW", "MLTJON", "MLTDAT", "MLTFLL",
                       "MLTCRT", "MLTANS", "MLTNXT", "USRJON", "USRLVE", "MLTEND", "INDTCK",
@@ -47,7 +49,7 @@ QString PACKDESC[] = {"EXPREQ", "EXPDAT", "DCKLST", "EXPRSP", "INPDAT", "DCKRSP"
 
 #define SENDDIFF 3
 #define SENDMIN 2
-#define REALDECKID "KPLGVQ"
+//#define REALDECKID "FZYHPS"
 
 
 MultiManager::MultiManager()
@@ -319,4 +321,7 @@ void MultiManager::registerNewAnswer(int sock, QString cardNum, QString currentR
     o.curRound = currentRound;
     o.sock = sock;
     addEvent(o);
+}
+void MultiManager::setFile(QString fileName){
+    REALDECKID = fileName;
 }

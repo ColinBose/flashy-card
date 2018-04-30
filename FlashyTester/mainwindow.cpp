@@ -16,4 +16,5 @@ MainWindow::~MainWindow()
 void MainWindow::on_startButton_clicked()
 {
     serv.startServer(1,1);
+    ui->startButton->setEnabled(false);
 }

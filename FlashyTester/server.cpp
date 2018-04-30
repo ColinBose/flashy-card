@@ -7,10 +7,11 @@ ReadEvents readQueue;
 bool RUNNING = true;
 #define MAXCLIENTS 50000
 #define SERVER "127.0.0.1"
-#define PORT 7000
-
+#define PORT "7000"
+#define CONFIGFILE "conf.txt"
 #define NUMUSERS 10000
-
+QString serverIp;
+QString serverPort;
 static struct epoll_event events[MAXCLIENTS], event;
 
 Server::Server()
@@ -19,6 +20,7 @@ Server::Server()
 }
 void Server::startServer(int workers, int events){
     pthread_t acceptThr, pollThr, multiPoll, joiner;
+    loadConfig();
     sem_init(&readReady,0,0);
 
     epoll_fd = epoll_create(MAXCLIENTS);
@@ -80,7 +82,7 @@ void * joinerThread(void * args){
     int * num = (int *) args;
     int totalStudy = *num;
     for(int i = 0; i < totalStudy; i++){
-        int sd = connectTCPSocket(PORT,SERVER);
+        int sd = connectTCPSocket(serverPort.toInt(),(char *)serverIp.toStdString().c_str());
         if(sd == -1){
             qDebug() << "Error connecting to server";
             continue;
@@ -118,4 +120,26 @@ void * eventHandler(void * args){
 }
 void * startMultiPoll(void *args){
     manager.pollOutEvents();
+}
+void loadConfig(){
+    QFile f(CONFIGFILE);
+
+    if(!f.open(QIODevice::ReadOnly)){
+        qDebug() << "Error loading config file";
+        serverPort = PORT;
+        serverIp = SERVER;
+        return;
+    }
+    QString line = f.readLine();
+    line = line.left(line.length()-1);
+    serverIp = line;
+    serverIp += '\0';
+    line = f.readLine();
+    line = line.left(line.length()-1);
+    serverPort = line;
+    line = f.readLine();
+    line = line.left(line.length()-1);
+    manager.setFile(line);
+
+    f.close();
 }
