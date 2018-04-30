@@ -26,6 +26,7 @@ public:
     void pushEvent(QString packet, int socket);
     void handleEvent();
     void removeClient(int sd, bool remove);
+    void setFile(QString fileName);
 private:
     QList<outEvent> outQueue;
     sem_t queueLock;
@@ -33,6 +34,7 @@ private:
     sem_t inEvent;
     sem_t eventLock;
     MessageBuffer messages;
+    QString REALDECKID = "";
 
     void handleWelcome(QString packet, int sock);
     void doJoinProcedure(int sock);

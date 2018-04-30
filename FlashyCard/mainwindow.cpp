@@ -925,7 +925,7 @@ void MainWindow::on_collectionActivate_clicked()
     int val = ui->collectionUnitList->item(row,0)->text().toInt();
     db.setActive(curDeck, val);
     updateMiniList(val, true);
-    updateUnitList(val, true);
+    updateUnitList(row, true);
     populateCardList(row);
 }
 
@@ -937,7 +937,7 @@ void MainWindow::on_collectionDeactivate_clicked()
     int val = ui->collectionUnitList->item(row,0)->text().toInt();
     db.setInactive(curDeck, val);
     updateMiniList(val, false);
-    updateUnitList(val, false);
+    updateUnitList(row, false);
     populateCardList(row);
 
 }
@@ -972,7 +972,7 @@ void MainWindow::on_mainConnect_clicked()
         displayMessage("Error connecting to server");
         return;
     }
-
+    qDebug() << "Connected to sever";
     networkedManager.setConnected(fd);
     ui->mainConnect->setEnabled(false);
     pthread_t networkThread;

@@ -9,7 +9,7 @@ bool RUNNING = true;
 #define SERVER "127.0.0.1"
 #define PORT "7000"
 #define CONFIGFILE "conf.txt"
-#define NUMUSERS 10000
+#define NUMUSERS 25000
 QString serverIp;
 QString serverPort;
 static struct epoll_event events[MAXCLIENTS], event;

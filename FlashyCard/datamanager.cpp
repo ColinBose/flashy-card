@@ -206,7 +206,6 @@ QSqlQuery DataManager::getDecks(){
     QSqlQuery query(db);
     QString date = getDate();
     QString q = "SELECT DeckName, DName FROM Deck LEFT JOIN (SELECT Count(Deck) DName, Deck FROM CardTable WHERE ACTIVE = 'YES' AND Due <= '" + date +"'  AND Inactive='NO' GROUP BY Deck) as C ON  DeckName = c.Deck";
-    qDebug() << q;
     query.exec(q);
     return query;
 }
