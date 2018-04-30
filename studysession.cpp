@@ -17,7 +17,7 @@ QString StudySession::getDeckName(){
 bool StudySession::setSession(DataManager db){
     int interval, past, numDone, stage;
     QString id, front,back,audio,hint, type;
-
+    int cardNum;
     session.clear();
     QSqlQuery result = db.getSession(deckName);
     while(result.next()){
@@ -25,6 +25,8 @@ bool StudySession::setSession(DataManager db){
         //QDate due, int interval, int past, int numDone, int stage){
         id = result.value("_id").toString();
         front = result.value("Front").toString();
+        cardNum = result.value("CardNum").toInt();
+
         back = result.value("Back").toString();
         audio = result.value("Sound").toString();
         hint = result.value("Hint").toString();
@@ -35,7 +37,7 @@ bool StudySession::setSession(DataManager db){
         numDone = result.value("NumDone").toInt();
         stage = result.value("Stage").toInt();
 
-        Card c(id, front,back,audio,hint,interval,past,numDone,stage, type);
+        Card c(id, front,back,audio,hint,interval,past,numDone,stage, type,cardNum);
         session.pushBack(c);
 
 
@@ -66,6 +68,18 @@ bool StudySession::getNext(Card ** c){
    return true;
 
 }
+bool StudySession::getMultiNext(Card ** c, int cardNum){
+    session.setCurrentNull();
+    wasReserve = false;
+    if(session.findCard(c, cardNum))
+        return true;
+    if(reserveList.length() == 0)
+        return false;
+    wasReserve = true;
+    *c = &reserveList[0];
+    return true;
+}
+
 void StudySession::setMaxInterval(int interval){
     maxInterval = interval;
 }
@@ -229,7 +243,10 @@ int StudySession::getInterval(Card *c, int ans){
     double pastPart, futurePart;
     pastPart = PASTINTERVALWEIGHT * curInt;
     futurePart = newAvg*curInt*CURRENTAVERAGEWEIGHT/100;
-    return (int)round(pastPart + futurePart);
+    int ret = (int)round(pastPart + futurePart);
+    if(ret == 0)
+        qDebug() << "Major error here";
+    return ret;
 }
 int StudySession::computeAverage(int past, int numPast, int cur, int maxPast){
     if(numPast > maxPast)
@@ -259,11 +276,76 @@ QString StudySession::padHint(QString answer, QString hint){
 void StudySession::clean(){
     session.clear();
     gram.cleanUp();
+    reserveList.clear();
 }
 bool StudySession::checkSentence(QString back){
     for(int i = 0; i < back.length(); i++){
         if(back[i] ==  ' ')
             return true;
     }
+    return false;
+}
+void StudySession::loadMultiCardList(DataManager db, QList<int> cardList, bool independant){
+
+    int interval, past, numDone, stage;
+    QString id, front,back,audio,hint, type;
+    int cardNum;
+
+    session.clear();
+    QList<Card> current;
+    QList<Card> reserve;
+    QSqlQuery result = db.getSession(deckName);
+    while(result.next()){
+        //QString code, QString front, QString back, QString audio, QString hint,
+        //QDate due, int interval, int past, int numDone, int stage){
+        id = result.value("_id").toString();
+        cardNum = result.value("CardNum").toInt();
+        front = result.value("Front").toString();
+        back = result.value("Back").toString();
+        audio = result.value("Sound").toString();
+        hint = result.value("Hint").toString();
+        type = result.value("Type").toString();
+        interval = result.value("UpdateInterval").toInt();
+        past = result.value("PastGrade").toInt();
+        numDone = result.value("NumDone").toInt();
+        stage = result.value("Stage").toInt();
+
+        Card c(id, front,back,audio,hint,interval,past,numDone,stage, type, cardNum);
+        if(!independant){
+            bool found = false;
+            for(int i = 0; i < cardList.length(); i++){
+                if(cardList[i] > cardNum)
+                    break;
+                if(cardList[i] == cardNum)
+                    found = true;
+            }
+            if(found){
+                current.push_back(c);
+            }
+            else{
+                reserve.push_back(c);
+            }
+        }
+        else{
+            current.push_back(c);
+        }
+
+
+
+    }
+    for(int i = 0; i<current.length();i++){
+        session.pushBack(current[i]);
+    }
+    for(int i = 0; i<reserve.length();i++){
+        addReserve(reserve[i]);
+    }
+
+}
+void StudySession::addReserve(Card c){
+    reserveList.push_back(c);
+}
+bool StudySession::complete(){
+    if(session.empty() && reserveList.length() == 0)
+        return true;
     return false;
 }

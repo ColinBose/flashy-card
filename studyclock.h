@@ -9,9 +9,11 @@ public:
     void startClock();
     void keyPushed();
     void stopClock();
+    void setDown();
 private:
     QDateTime lastPressed;
     MainWindow * mw;
+    bool forward = true;
     bool running;
 };
 

@@ -34,7 +34,7 @@ bool DataManager::createCardTable(){
                         "`Stage`	INTEGER,"
                         "`Unit`	INTEGER,"
                         "`Sound` TEXT,"
-                        "`Type` TEXT"
+                        "`Type` TEXT,"
                         "`Inactive` TEXT DEFAULT 'NO')"
                     ))
     {
@@ -52,7 +52,7 @@ bool DataManager::createDeckTable(){
                        "`LastUpdated`	TEXT,"
                        "`UpdatesLeft`	INTEGER,"
                        "`Daily`	INTEGER,"
-                       "`MaxInteval` INTEGER,"
+                       "`MaxInterval` INTEGER,"
                        "`Dictionary` TEXT)"
                    )){
         qDebug() << "SQL error: "<< query.lastError().text() << endl;
@@ -216,6 +216,8 @@ bool DataManager::createDeck(QString name, int maxInterval, int dailyUpdates){
     QSqlQuery query(db);
     QString code;
     QString date = getDate();
+    if(deckExists(name))
+        return false;
     code = getCode("Deck", "DeckID");
     query.prepare("INSERT INTO Deck (DeckID, DeckName, LastUpdated, UpdatesLeft, Daily, MaxInterval) VALUES(?,?,?,?,?,?)");
     query.bindValue(0, code);
@@ -249,6 +251,8 @@ void DataManager::printError(QSqlQuery query){
 QString DataManager::getCode(QString table, QString row){
     QSqlQuery query(db);
     QString code;
+    int seed = time(NULL);
+    srand(seed);
     int i = 0;
     while(i++ < 100){
         code = genCode();
@@ -516,7 +520,7 @@ int DataManager::getSeenTotal(QString deck){
 QSqlQuery DataManager::getSession(QString deck){
     QSqlQuery query(db);
     QString date = getDate();
-    query.prepare("SELECT * FROM CardTable WHERE Deck = ? AND Due <= ? AND Active='YES' AND Inactive='NO'");
+    query.prepare("SELECT * FROM CardTable WHERE Deck = ? AND Due <= ? AND Active='YES' AND Inactive='NO' ORDER BY CardNum ASC");
     query.bindValue(0,deck);
     query.bindValue(1,date);
 
@@ -554,6 +558,17 @@ bool DataManager::updateHint(QString hint, QString code){
     query.bindValue(1,code);
     return query.exec();
 }
+QSqlQuery DataManager::getCardsForExport(QString deck){
+    QSqlQuery query(db);
+    query.prepare("SELECT Front, Back, CardNum FROM CardTable WHERE Deck = ?");
+    query.bindValue(0, deck);
+    if(!query.exec()){
+          printError(query);
+          qDebug() << "Error in getAllCards";
+    }
+    return query;
+}
+
 QSqlQuery DataManager::getAllCards(QString deck){
     QSqlQuery query(db);
     query.prepare("SELECT Front, Unit, Inactive FROM CardTable WHERE Deck = ? ORDER BY Unit ASC");
@@ -701,4 +716,124 @@ QList<statData> DataManager::getHistory(QDate start ){
     }
 
     return retStats;
+}
+
+QString DataManager::addImportDeck(QString deckID, QString deckName){
+
+    QSqlQuery query(db);
+    QString code;
+    QString date = getDate();
+    QString deckCheck = deckName;
+    int i = 1;
+    while(deckExists(deckCheck)){
+        deckCheck = deckName;
+        deckCheck += "_";
+        deckCheck += QString::number(i);
+        i++;
+    }
+    deckName = deckCheck;
+    query.prepare("INSERT INTO Deck (DeckID, DeckName, LastUpdated, UpdatesLeft, Daily, MaxInterval) VALUES(?,?,?,?,?,?)");
+    query.bindValue(0, deckID);
+    query.bindValue(1, deckName);
+    query.bindValue(2, date);
+    query.bindValue(3, STANDARDDAILY);
+    query.bindValue(4, STANDARDDAILY);
+    query.bindValue(5, STANDARDINTERVAL);
+
+    if(!query.exec()){
+        printError(query);
+        return "";
+    }
+
+    return deckCheck;
+}
+int DataManager::addALLCard(QList<shortCard> cardList, QString deckName){
+      db.transaction();
+    QSqlQuery query(db);
+    QString date = getDate();
+    query.prepare("INSERT INTO CardTable (Deck, CardNum, Front, Back, Due, Active, UpdateInterval, Hint, PastGrade, NumDone, Stage, Unit, Sound, Type, Inactive)"
+                  " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+    for(int i = 0; i < cardList.length(); i++){
+
+        int cardType = getType(cardList[i].back);
+        query.bindValue(0,deckName);
+        query.bindValue(1,cardList[i].cardNum);
+        query.bindValue(2,cardList[i].front);
+        query.bindValue(3, cardList[i].back);
+        query.bindValue(4,date);
+        query.bindValue(5,"NO");
+        query.bindValue(6, 1);
+        query.bindValue(7, "");
+        query.bindValue(8, 0);
+        query.bindValue(9, 0);
+        query.bindValue(10, 0);
+        query.bindValue(11, (int)i/50);
+        query.bindValue(12, "");
+        query.bindValue(13, languageArr[cardType]);
+        query.bindValue(14, "NO");
+        query.exec();
+    }
+    db.commit();
+}
+bool DataManager::deckExists(QString deckName){
+    QSqlQuery query(db);
+    query.prepare("SELECT * FROM Deck WHERE DeckName = ?");
+    query.bindValue(0, deckName);
+    if(!query.exec()){
+        qDebug() << "Error in deck Check";
+        printError(query);
+    }
+    return query.next();
+
+}
+void DataManager::updateDeckID(QString id, QString deckName){
+    QSqlQuery query(db);
+    query.prepare("UPDATE Deck SET DeckID = ? WHERE DeckName = ?");
+    query.bindValue(0, id);
+    query.bindValue(1, deckName);
+    if(!query.exec()){
+        qDebug() << "Error updating deck ID";
+        printError(query);
+    }
+
+}
+void DataManager::importDeckFromFile(QString deckName, QList<shortCard> cardList){
+    db.transaction();
+    QSqlQuery query(db);
+    QString date = getDate();
+    query.prepare("INSERT INTO CardTable (Deck, CardNum, Front, Back, Due, Active, UpdateInterval, Hint, PastGrade, NumDone, Stage, Unit, Sound, Type, Inactive)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ");
+    for(int i = 0; i < cardList.length(); i++){
+
+      int cardType = getType(cardList[i].back);
+      query.bindValue(0,deckName);
+      query.bindValue(1, i);
+      query.bindValue(2,cardList[i].front);
+      query.bindValue(3, cardList[i].back);
+      query.bindValue(4,date);
+      query.bindValue(5,"NO");
+      query.bindValue(6, 1);
+      query.bindValue(7, "");
+      query.bindValue(8, 0);
+      query.bindValue(9, 0);
+      query.bindValue(10, 0);
+      query.bindValue(11, cardList[i].unit);
+      query.bindValue(12, cardList[i].sound);
+      query.bindValue(13, languageArr[cardType]);
+      query.bindValue(14, "NO");
+      query.exec();
+    }
+db.commit();
+}
+QString DataManager::getDeckId(QString deckName){
+    QSqlQuery query(db);
+    query.prepare("SELECT DeckID FROM Deck WHERE DeckName = ?");
+    query.bindValue(0, deckName);
+    if(!query.exec()){
+        qDebug() << "Error updating deck ID";
+        printError(query);
+    }
+    if(!query.next())
+        return "";
+    return query.value(0).toString();
 }

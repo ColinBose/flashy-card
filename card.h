@@ -7,7 +7,7 @@ class Card
 public:
     Card();
     Card(QString test);
-    Card(QString code, QString front, QString back, QString audio, QString hint, int interval, int past, int numDone, int stage, QString type);
+    Card(QString code, QString front, QString back, QString audio, QString hint, int interval, int past, int numDone, int stage, QString type, int num);
     QString code, front, back, audio, hint, type;
     QDate due;
 
@@ -19,6 +19,7 @@ public:
     bool newCard;
     bool prevDone;
     int initLevel;
+    int cardNum;
     int level;
 
 };

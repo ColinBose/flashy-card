@@ -2,7 +2,7 @@
 #include <chrono>
 #include <thread>
 #define TIMEOUT -7
-StudyClock::StudyClock(MainWindow *qMain)
+StudyClock::StudyClock(MainWindow * main)
 {
     mw = main;
     running = false;
@@ -14,8 +14,12 @@ void StudyClock::startClock(){
     while(running){
         curTime = QDateTime::currentDateTime();
         curTime = curTime.addSecs(TIMEOUT);
-        if(curTime < lastPressed)
-            QMetaObject::invokeMethod(mw,"addSecToClock", Qt::QueuedConnection);
+        if(curTime < lastPressed || !forward){
+            if(forward)
+                QMetaObject::invokeMethod(mw,"addSecToClock", Qt::QueuedConnection);
+            else
+                QMetaObject::invokeMethod(mw,"removeSecFromClock", Qt::QueuedConnection);
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }
@@ -25,4 +29,8 @@ void StudyClock::stopClock(){
 void StudyClock::keyPushed(){
     lastPressed = QDateTime::currentDateTime();
 
+}
+
+void StudyClock::setDown(){
+    forward = false;
 }

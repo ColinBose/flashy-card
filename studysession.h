@@ -14,6 +14,7 @@ public:
     CardList session;
     bool setSession(DataManager db);
     bool getNext(Card ** c);
+    bool getMultiNext(Card ** c, int cardNum);
     QString loadHint(Card c, bool sentence);
     QString generalHint(Card c);
     int remain();
@@ -30,10 +31,15 @@ public:
     void setMaxInterval(int interval);
     int maxInterval;
     bool checkSentence(QString back);
+    void loadMultiCardList(DataManager db, QList<int> cardList, bool independant);
+    void addReserve(Card c);
+    bool complete();
+
 private:
     QString deckName;
     GrammarPuller gram;
-
+    bool wasReserve;
+    QList<Card> reserveList;
     int computeAverage(int past, int numPast, int cur, int maxPast);
 };
 

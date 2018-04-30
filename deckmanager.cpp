@@ -38,6 +38,7 @@ QStringList DeckManager::checkLine(QChar seperator){
 }
 void DeckManager::doImport(DataManager db, int front, int back, int unit, int sound){
     int totalDone = 0;
+    QList<shortCard> cardList;
     int startIndex = db.fastIndex(deckName);
     for(int i = 0; i < allLines.length(); i++){
 
@@ -62,15 +63,23 @@ void DeckManager::doImport(DataManager db, int front, int back, int unit, int so
 
         QString frontString = indvParts.at(front-1);
         QString backString = indvParts.at(back-1);
-        if(db.fastAddCard(deckName, frontString, backString, soundString, incUnit,startIndex)){
+        shortCard sh;
+        sh.back = backString;
+        sh.front = frontString;
+        sh.sound = soundString;
+        sh.unit = incUnit;
+        cardList.push_back(sh);
+        totalDone++;
+        /*if(db.fastAddCard(deckName, frontString, backString, soundString, incUnit,startIndex)){
             startIndex++;
-            totalDone++;
             qDebug() << "Card added";
         }
         else{
             qDebug() << "Error adding card";
         }
+        */
     }
+    db.importDeckFromFile(deckName, cardList);
     if(nonMatching.length() > 0){
       writeBadMatching(nonMatching, sep);
     }

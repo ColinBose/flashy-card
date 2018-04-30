@@ -1,12 +1,21 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "cardlist.h"
+#define SERVERIP "127.0.0.1"
+#define SERVERPORT 7000
+
 StudyClock * c;
+StudyClock * countdownClock;
+MultiManager networkedManager;
+QColor bgColours[10] = {Qt::green, Qt::red, Qt::blue, Qt::cyan, Qt::gray, Qt::yellow, Qt::darkBlue, Qt::darkMagenta, Qt::darkGreen, Qt::darkCyan};
+QPushButton * gameButtons[16];
 QStringList colors({"red", "green","blue", "cyan","purple"});
 QString buttonColours[7] = { "* { background-color: rgb(0,99,0)}","* { background-color: rgb(33,255,33)}",
                              "* {background-color: rgb(255,255,0)}","* { background-color: rgb(255,200,50)}",
                              "* {background-color: rgb(255,90,50)}","* { background-color: rgb(180,35,0)}"
                            ,"* { background-color: rgb(255,255,255)}"};
+
+
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -17,8 +26,21 @@ MainWindow::MainWindow(QWidget *parent) :
     returnToMain();
     //studyTime = QTime::fromString("000000", "HHmmss");
     c = new StudyClock(this);
+    countdownClock = new StudyClock(this);
+    networkedManager.setData(&db, this);
+    loadGameButtons();
+  //  loadGame();
 }
 
+
+void * networkWorker(void *args){
+    networkedManager.readLoop();
+}
+
+
+void MainWindow::testFunction(char buff[]){
+
+}
 
 MainWindow::~MainWindow()
 {
@@ -27,8 +49,18 @@ MainWindow::~MainWindow()
 void MainWindow::returnToMain(){
     setPage(MAINPAGE);
     db.checkDailyReset();
+
     setDue();
     updateStats();
+    if(!connected){
+        ui->mainMulti->setEnabled(false);
+        ui->friendButton->setEnabled(false);
+        ui->mainLogin->setEnabled(false);
+    }
+    else{
+        ui->mainMulti->setEnabled(true);
+        ui->mainLogin->setEnabled(true);
+    }
     popDeckTable();
 
 
@@ -153,6 +185,8 @@ void MainWindow::on_addCardButton_clicked()
     if(front.length() == 0 || back.length() == 0)
         return;
     deckM.addCard(db, front, back);
+    ui->addCardBack->setText("");
+    ui->addCardFront->setText("");
 }
 
 void MainWindow::on_mainDeckManager_clicked()
@@ -282,7 +316,9 @@ void MainWindow::on_mainStudy_clicked()
     QString deckName = ui->mainDeckView->item(row, 0)->text();
     curDeck = deckName;
     study.setDeck(deckName);
+
     loadDeckSummary();
+
 }
 void MainWindow::loadDeckSummary(){
     QString deck = study.getDeckName();
@@ -333,8 +369,11 @@ void MainWindow::on_deckSummaryStudy_clicked()
 
     QSqlQuery result = db.getTodaysStats();
     setTodayStat(result);
-
+    //this->resize(800, 750);
     setPage(STUDY);
+
+    ui->studyMultiBox->setHidden(true);
+
   //  if(study.isSentences())
     //    ui->studySentenceCheck->setChecked(true);
     //else
@@ -357,6 +396,8 @@ void MainWindow::on_studyAnswerButton_clicked()
     QString answerString;
 
     if(question){
+        if(answerLock)
+            return;
         QString answer = ui->studyAnswerEdit->text();
         if(answer.length() == 0)
             return;
@@ -366,14 +407,18 @@ void MainWindow::on_studyAnswerButton_clicked()
         if(sentence)
             qDebug() << "Doing sentence eval";
         answerString = study.evalAnswer(*curCard,answer, sentence, &answerVal, ui->studyHintLabel->text());
-
         dealWithAnswer(answer, answerVal, answerString);
 
         question = false;
+        if(multiStudy && !networkedManager.isIndependant()){
+            ui->studyAnswerButton->setEnabled(false);
+            answerLock = true;
+        }
 
     }
     else{
-        singleStudyLoadQuestion();
+        if(!multiStudy || networkedManager.isIndependant())
+            singleStudyLoadQuestion();
     }
 
 
@@ -381,26 +426,78 @@ void MainWindow::on_studyAnswerButton_clicked()
 }
 void MainWindow::singleStudyLoadQuestion(){
     if(!study.getNext(&curCard)){
+
         study.clean();
-        returnToMain();
+        if(!multiStudy){
+            returnToMain();
+        }else{
+            clearAllStudy();
+            //CLEAN UP ALL labels etc here
+        }
         return;
     }
     loadQuestion(curCard);
+}
+void MainWindow::multiLoadQuestion(int cardNum){
+    if(cardNum == -2){
+        qDebug() << "waiting for next question";
+        ui->studyAnswerButton->setEnabled(false);
+        answerLock = true;
+        return;
+    }
+    if(networkedManager.isIndependant()){
+        qDebug() << "Independant, loading normal question";
+        singleStudyLoadQuestion();
+        return;
+    }
+    if(study.complete()){
+        study.clean();
+        clearAllStudy();
+        networkedManager.sendUserDone();
+    }
+
+    //No cards in reserve and current card already completed
+    if(!study.getMultiNext(&curCard, cardNum)){
+        qDebug() << "No card at current, a new one will come soon!";
+        networkedManager.sendFakeResponse();
+        ui->studyFront->setText("No current card, wait for others to finish current round");
+    }
+    else{
+        sleep(1);
+        loadQuestion(curCard);
+    }
+    setCountdown(networkedManager.interval+2);
 
 }
+void MainWindow::setCountdown(int sec){
+    //studyTime = QTime::fromString("000000", "HHmmss");
+    QString time = "0000";
+    if(sec < 10)
+        time += "0";
+    time += QString::number(sec);
+    countDown = QTime::fromString(time, "HHmmss");
+}
+
 void MainWindow::addSecToClock(){
     studyTime = studyTime.addSecs(1);
     ui->studyElapsedTIme->setText("Time Studied: " + studyTime.toString(Qt::ISODate));
+}
+void MainWindow::removeSecFromClock(){
+    if(countDown.second() <= 0)
+        return;
+    countDown = countDown.addSecs(-1);
+    ui->studyCountDown->setText("Current Round: " + countDown.toString("ss"));
 }
 
 void MainWindow::loadQuestion(Card * c){
     hideStudyAnswer();
     ui->studyFront->setText(c->front);
     ui->studyHintEdit->setText(c->hint);
-
+    ui->studyAnswerButton->setEnabled(true);
+    answerLock = false;
     ui->studyFront->setText(curCard->front);
     if(ui->studyHintCheck->isChecked()){
-        QString hint = study.loadHint(*curCard, ui->studySentenceCheck->isChecked());
+        QString hint = study.loadHint(*curCard, true);
 
         hint = addHintToHint(hint,curCard->hint, curCard->back);
         ui->studyHintLabel->setText(hint);
@@ -449,7 +546,24 @@ void MainWindow::dealWithAnswer(QString answer, int ansVal, QString answerString
     //colourAnswer(answer);
     ui->studyAnswerLabel->setText(answerString);
 
-    updateScoringDue(ansVal);
+    bool rem =  updateScoringDue(ansVal);
+    if(networkedManager.isIndependant() && networkedManager.isSolo())
+        return;
+    if(multiStudy){
+        if(rem){
+            if(networkedManager.isIndependant()){
+                networkedManager.sendIndTick();
+            }
+            else{
+
+                networkedManager.sendAnswer(curCard->cardNum, ansVal,'1');
+            }
+        }
+        else{
+            if(!networkedManager.isIndependant())
+                networkedManager.sendAnswer(curCard->cardNum, ansVal,'0');
+        }
+    }
 
 }
 void MainWindow::updateAverage(int curScore){
@@ -464,12 +578,13 @@ void MainWindow::updateAverage(int curScore){
 
 }
 
-void MainWindow::updateScoringDue(int ans){
+bool MainWindow::updateScoringDue(int ans){
     int newInterval;
     int newAverage;
     int newLevel;
     int newAttempts;
     newLevel = -1;
+    bool ret =false;
     updateAverage(ans);
     attempted++;
     if(!curCard->prevDone){
@@ -523,10 +638,12 @@ void MainWindow::updateScoringDue(int ans){
             newCards++;
             correct++;
             study.remove();
+            ret = true;
         }
         else if(!curCard->newCard){
             correct++;
             study.remove();
+            ret = true;
         }
         else if(curCard->newCard)
             incrementTime(77);
@@ -539,7 +656,7 @@ void MainWindow::updateScoringDue(int ans){
     ui->studyAnswerPercentLabel->setText("Score: " + answerValString);
     db.updateStats(attempted, correct, avgPercent, newCards, studyTime );
     //For All
-
+    return ret;
 
 }
 
@@ -704,7 +821,9 @@ void MainWindow::greenBack(QTableWidgetItem * widget){
 void MainWindow::redBack(QTableWidgetItem * widget){
     widget->setBackground(Qt::red);
 }
-
+void MainWindow::randomBack(QTableWidgetItem *widge, int index){
+     widge->setBackground(bgColours[index]);
+}
 
 
 void MainWindow::on_collectionUnitList_clicked(const QModelIndex &index)
@@ -752,16 +871,8 @@ void MainWindow::populateCardList(int index){
     }
 }
 
-void MainWindow::on_importReturnMain_clicked()
-{
-    returnToMain();
-}
 
-void MainWindow::on_createReturnMain_clicked()
-{
-    returnToMain();
 
-}
 void MainWindow::displayMessage(QString message){
     QMessageBox msg;
     msg.setText(message);
@@ -792,12 +903,17 @@ QString MainWindow::addHintToHint(QString hint, QString cardHint, QString answer
     }
     return ret;
 }
-
+/*
 void MainWindow::on_studyMainMenu_clicked()
 {
     study.clean();
+    countdownClock->stopClock();
+    c->stopClock();
+    if(multiStudy)
+        networkedManager.sendExit();
     returnToMain();
 }
+*/
 
 
 void MainWindow::on_collectionActivate_clicked()
@@ -846,3 +962,617 @@ void MainWindow::on_mainStatsButton_clicked()
 }
 
 
+
+void MainWindow::on_mainConnect_clicked()
+{
+    int fd;
+    fd = connectTCPSocket(SERVERPORT,SERVERIP);
+    if(fd == -1){
+        displayMessage("Error connecting to server");
+        return;
+    }
+
+    networkedManager.setConnected(fd);
+    ui->mainConnect->setEnabled(false);
+    pthread_t networkThread;
+    connected = true;
+    registerSocket(fd, 15);
+    pthread_create(&networkThread, 0, networkWorker, (void *)0);
+    ui->mainMulti->setEnabled(true);
+    ui->mainLogin->setEnabled(true);
+
+}
+
+void MainWindow::on_deckManagerExport_clicked()
+{
+    setPage(EXPORT);
+}
+
+void MainWindow::on_exportExportButton_clicked()
+{
+    QString description, deck, language;
+    description = ui->exportDescription->text();
+    language = ui->exportLanguage->text();
+    if(description.length() == 0){
+        displayMessage("Please enter a description");
+        return;
+    }
+    if(language.length() == 0){
+        displayMessage("Please enter a language");
+        return;
+    }
+    deck = ui->deckTitle->text();
+    networkedManager.doExport(deck,description,language);
+
+}
+
+void MainWindow::on_deckManagerImportFromServer_clicked()
+{
+    setPage(IMPORT);
+    networkedManager.requestDeckList();
+}
+void MainWindow::updateImportList(QStringList list){
+    ui->importTable->clear();
+    ui->importTable->setRowCount(0);
+    ui->importTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->importTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->importTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->importTable->setColumnCount(2);
+    ui->importTable->horizontalHeader()->setStretchLastSection(true);
+    ui->importTable->verticalHeader()->hide();
+    QStringList headers;
+    headers.push_back("DeckID");
+    headers.push_back("Cards");
+    ui->importTable->setHorizontalHeaderLabels(headers);
+    for(int i = 0; i < list.length(); i++){
+        QStringList parts = list[i].split('\t');
+        if(parts.length() < 6)
+            continue;
+        ui->importTable->insertRow(i);
+        importDeckData dat;
+        dat.creator = parts[2];
+        dat.deckID = parts[0];
+        dat.desc = parts[3];
+        dat.language = parts[4];
+        dat.numCards = parts[5];
+        importData.push_back(dat);
+
+
+
+        ui->importTable->setItem(i,0,new QTableWidgetItem(parts[1]));
+        ui->importTable->setItem(i,1,new QTableWidgetItem(parts[5]));
+
+    }
+}
+
+void MainWindow::on_importGetDeck_clicked()
+{
+    int row = ui->importTable->selectionModel()->currentIndex().row();
+    if(row == -1){
+        return;
+    }
+    QString deckID;
+    QString deckName = ui->importTable->item(row,0)->text();
+    if(row > importData.length())
+        displayMessage("Error, deck not found");
+    deckID = importData[row].deckID;
+    QString check = db.addImportDeck(deckID, deckName);
+    if(check.length() == 0){
+        displayMessage("Error creating deck");
+        return;
+    }
+    networkedManager.sendImportRequest(deckID, check);
+}
+
+void MainWindow::on_multiStudyButton_clicked()
+{
+    int row = ui->multiLobbyTable->selectionModel()->currentIndex().row();
+    if(row == -1){
+        return;
+    }
+    networkedManager.sendMultiJoinRequest(curDeck, row);
+    setupScoreTable();
+
+}
+
+void MainWindow::on_mainMulti_clicked()
+{
+    int row = ui->mainDeckView->selectionModel()->currentIndex().row();
+    if(row == -1){
+        return;
+    }
+    QString deckName = ui->mainDeckView->item(row, 0)->text();
+    curDeck = deckName;
+       // this->resize(1260, 750);
+    setPage(MULTIPAGE);
+   // this->resize(1260, 750);
+    ui->multiLobbyTable->clear();
+    ui->multiLobbyTable->setRowCount(0);
+    networkedManager.sendMultiRequest(deckName);
+}
+
+void MainWindow::on_multiCreateRoom_clicked()
+{
+
+    int games = 0;
+    int ind = 0;
+    if(ui->multiIndiCheck->isChecked())
+        ind = 1;
+    else{
+        pthread_t clock;
+        pthread_create(&clock, 0, cdThread, (void *)0);
+    }
+    if(ui->multiGamesCheck->isChecked())
+        games = 1;
+
+    int interval = ui->multiRoundSlider->value();
+    networkedManager.createRoom(curDeck, interval, games,ind);
+    setupScoreTable();
+    ui->studyAnswerButton->setEnabled(true);
+    answerLock = false;
+}
+void MainWindow::updateRoomList(){
+    QList<roomData>rooms = networkedManager.availableRooms;
+    ui->multiLobbyTable->clear();
+    ui->multiLobbyTable->setRowCount(0);
+    ui->multiLobbyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->multiLobbyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->multiLobbyTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->multiLobbyTable->setColumnCount(4);
+    ui->multiLobbyTable->horizontalHeader()->setStretchLastSection(true);
+    ui->multiLobbyTable->verticalHeader()->hide();
+    QStringList headers;
+    headers.push_back("Cards");
+    headers.push_back("Users");
+    headers.push_back("Interval");
+    headers.push_back("Group");
+    int rows = 0;
+    ui->multiLobbyTable->setHorizontalHeaderLabels(headers);
+    for(int i = 0; i < rooms.length(); i++){
+        qDebug() << "Adding rows";
+        ui->multiLobbyTable->insertRow(rows++);
+        ui->multiLobbyTable->setItem(i,0,new QTableWidgetItem(rooms[i].matches));
+        ui->multiLobbyTable->setItem(i,1,new QTableWidgetItem(rooms[i].members));
+        ui->multiLobbyTable->setItem(i,2,new QTableWidgetItem(rooms[i].interval));
+        if(rooms[i].independant)
+            ui->multiLobbyTable->setItem(i,3,new QTableWidgetItem("No"));
+        else
+            ui->multiLobbyTable->setItem(i,3,new QTableWidgetItem("Yes"));
+
+    }
+}
+void MainWindow::joinMultiStudy(){
+    doBasicStudySetup();
+
+    if(networkedManager.isIndependant()){
+        pthread_t clock;
+        pthread_create(&clock, 0, cdThread, (void *)0);
+        study.loadMultiCardList(db, networkedManager.getCardList(), true);
+        multiLoadQuestion(-1);
+    }
+    else{
+        study.loadMultiCardList(db, networkedManager.getCardList(), false);
+        multiLoadQuestion(-2);
+    }
+}
+void MainWindow::roomFull(){
+    displayMessage("Room full, try another");
+}
+void MainWindow::roomGone(){
+    displayMessage("Room no longer exists, try another");
+}
+void MainWindow::newMultiCreated(){
+    doBasicStudySetup();
+    if(networkedManager.isIndependant()){
+        study.loadMultiCardList(db, networkedManager.getCardList(), true);
+    }
+    else{
+        study.loadMultiCardList(db, networkedManager.getCardList(), false);
+    }
+    QList<int> card = networkedManager.getCardList();
+    if(card.length() > 0)
+        multiLoadQuestion(card[0]);
+    else
+        multiLoadQuestion(-2);
+
+
+
+}
+void MainWindow::doBasicStudySetup(){
+    study.setDeck(curDeck);
+    study.loadGrammar(db);
+    int interval = db.getInterval(curDeck);
+    study.setMaxInterval(interval);
+    multiStudy = true;
+    QSqlQuery result = db.getTodaysStats();
+    setTodayStat(result);
+    setPage(STUDY);
+    ui->studyMultiBox->setHidden(false);
+    threadStarter();
+}
+
+void MainWindow::disconnectFromMulti(){
+    networkedManager.closeConnect();
+}
+void MainWindow::clearAllStudy(){
+    ui->studyAnswerEdit->setText("");
+    ui->studyAnswerLabel->setText("");
+    ui->studyAnswerPercentLabel->setText("");
+    ui->studyFront->setText("");
+    ui->studyHintEdit->setText("");
+    ui->studyNewAverage->setText("");
+    ui->studyNewInterval->setText("");
+    ui->studyPastAttempts->setText("");
+    ui->studyPastAverage->setText("");
+    ui->studyPastInterval->setText("");
+}
+void MainWindow::serverDied(){
+    if(multiStudy){
+        returnToMain();
+        study.clean();
+    }
+    connected = false;
+    ui->mainConnect->setEnabled(true);
+    ui->mainMulti->setEnabled(false);
+    ui->mainLogin->setEnabled(false);
+    ui->friendButton->setEnabled(false);
+}
+void MainWindow::updateScores(){
+    ui->studyScoreList->clear();
+    ui->studyScoreList->setRowCount(0);
+    ui->studyScoreList->setColumnCount(2);
+    QStringList headers;
+    headers.push_back("User");
+    headers.push_back("Score");
+    ui->studyScoreList->setHorizontalHeaderLabels(headers);
+    QList<users> userList = networkedManager.userList;
+    int row = 0;
+    if(userList.length() == 0)
+        return;
+    do{
+        int max = userList[0].score - userList[0].startScore;
+        int ind = 0;
+
+        for(int i = 0; i < userList.length(); i++){
+            int realScore = userList[i].score - userList[i].startScore;
+            if(realScore > max){
+                max = realScore;
+                ind = i;
+            }
+        }
+        ui->studyScoreList->insertRow(row);
+        QString name = userList[ind].name;
+        ui->studyScoreList->setItem(row,0,new QTableWidgetItem(name));
+        ui->studyScoreList->setItem(row,1,new QTableWidgetItem(QString::number(max)));
+        int realIndex = -1;
+        for(int j = 0; j < networkedManager.userList.length(); j++){
+            if(name == networkedManager.userList[j].name){
+                realIndex = j;
+                break;
+            }
+        }
+        if(realIndex != -1 && realIndex < 10){
+            randomBack(ui->studyScoreList->item(row,0), realIndex);
+
+        }
+        userList.removeAt(ind);
+
+    }while(userList.length() > 0);
+
+}
+void MainWindow::setupScoreTable(){
+    ui->studyScoreList->clear();
+    ui->studyScoreList->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    //ui->studyScoreList->setSelectionBehavior(QAbstractItemView::NoSelection);
+    ui->studyScoreList->setColumnCount(2);
+    ui->studyScoreList->horizontalHeader()->setStretchLastSection(true);
+
+    ui->studyScoreList->verticalHeader()->hide();
+    QStringList headers;
+    headers.push_back("User");
+    headers.push_back("Score");
+    ui->studyScoreList->setHorizontalHeaderLabels(headers);
+    ui->studyScoreList->setColumnWidth(0, ui->studyScoreList->width()/10*7);;
+
+}
+
+void MainWindow::on_studySendChat_returnPressed()
+{
+    QString message = ui->studySendChat->text();
+    networkedManager.sendChat(message);
+    ui->studySendChat->setText("");
+}
+void MainWindow::addChat(QString message){
+    QStringList parts = message.split('>');
+    int realIndex = -1;
+    if(parts.length() > 1){
+        QString name = parts[0];
+        for(int i = 0; i < networkedManager.userList.length(); i++){
+            if(name == networkedManager.userList[i].name){
+                realIndex = i;
+                break;
+            }
+        }
+    }
+    if(realIndex > -1 && realIndex < 10){
+        ui->studyChat->moveCursor( QTextCursor::End );
+        QTextCursor cursor( ui->studyChat->textCursor() );
+
+        QTextCharFormat format;
+        format.setFontWeight( QFont::DemiBold );
+        format.setForeground( QBrush( bgColours[realIndex] ) );
+        cursor.setCharFormat( format );
+
+        cursor.insertText( message );
+        //cursor.insertText('\n');
+        ui->studyChat->append("");
+
+
+    }
+ //   ui->studyChat->append(message);
+}
+void * cdThread(void *args){
+    countdownClock->setDown();
+    countdownClock->startClock();
+}
+
+
+void MainWindow::gameClickLogic(int guess, bool clicked){
+    clicked = !clicked;
+    if(guessMade){
+        //second button clicked - evaluate if 2 are seperate
+
+        //This was clicked previously - so cancel it out
+        if(clicked){
+            guessMade = false;
+            gameFirstGuess = -1;
+            gameButtons[guess]->setChecked(false);
+        }else{
+            //Second guess, so send for eval
+            gameSecondGuess = guess;
+            networkedManager.sendGameGuess(gameFirstGuess, gameSecondGuess);
+            gameButtons[gameFirstGuess]->setChecked(false);
+            gameButtons[gameSecondGuess]->setChecked(false);
+            guessMade = false;
+            gameFirstGuess = -1;
+            gameFirstGuess = -1;
+        }
+
+    }else{
+        guessMade = true;
+        gameFirstGuess = guess;
+        //first button clicked
+    }
+}
+void MainWindow::updateGameBoard(int index, int first, int second){
+    isCurrentlyChecked(first);
+    isCurrentlyChecked(second);
+    displayGameAnswer(first,second,index);
+
+
+}
+bool MainWindow::isCurrentlyChecked(int place){
+    if(gameButtons[place]->isChecked()){
+        guessMade = false;
+        gameButtons[place]->setChecked(false);
+        gameFirstGuess = -1;
+        return true;
+    }
+    return false;
+}
+void MainWindow::displayGameAnswer(int first, int second, int index){
+    gameButtons[first]->setEnabled(false);
+    QString qss = QString("background-color: %1").arg(bgColours[index].name());
+    gameButtons[first]->setStyleSheet(qss);
+
+    gameButtons[second]->setEnabled(false);
+    qss = QString("background-color: %1").arg(bgColours[index].name());
+    gameButtons[second]->setStyleSheet(qss);
+
+}
+
+
+void MainWindow::loadGame(){
+    setPage(GAME);
+    for(int i = 0; i < 16; i++){
+        gameButtons[i]->setStyleSheet("");
+        gameButtons[i]->setEnabled(true);
+        if(i < networkedManager.gameList.length())
+            gameButtons[i]->setText(networkedManager.gameList[i]);
+    }
+}
+
+
+void MainWindow::on_game0_clicked()
+{
+
+    gameClickLogic(0, ui->game0->isChecked());
+}
+
+void MainWindow::on_game1_clicked()
+{
+    gameClickLogic(1, ui->game1->isChecked());
+}
+
+void MainWindow::on_game2_clicked()
+{
+    gameClickLogic(2, ui->game2->isChecked());
+}
+
+void MainWindow::on_game3_clicked()
+{
+    gameClickLogic(3, ui->game3->isChecked());
+}
+
+void MainWindow::on_game4_clicked()
+{
+    gameClickLogic(4, ui->game4->isChecked());
+}
+
+void MainWindow::on_game5_clicked()
+{
+    gameClickLogic(5, ui->game5->isChecked());
+}
+
+void MainWindow::on_game6_clicked()
+{
+    gameClickLogic(6, ui->game6->isChecked());
+}
+
+void MainWindow::on_game7_clicked()
+{
+    gameClickLogic(7, ui->game7->isChecked());
+}
+void MainWindow::on_game8_clicked()
+{
+    gameClickLogic(8, ui->game8->isChecked());
+}
+void MainWindow::on_game9_clicked()
+{
+    gameClickLogic(9, ui->game9->isChecked());
+}
+
+void MainWindow::on_game10_clicked()
+{
+    gameClickLogic(10, ui->game10->isChecked());
+}
+
+void MainWindow::on_game11_clicked()
+{
+    gameClickLogic(11, ui->game11->isChecked());
+}
+
+void MainWindow::on_game12_clicked()
+{
+    gameClickLogic(12, ui->game12->isChecked());
+}
+
+void MainWindow::on_game13_clicked()
+{
+    gameClickLogic(13, ui->game13->isChecked());
+}
+
+void MainWindow::on_game14_clicked()
+{
+    gameClickLogic(14, ui->game14->isChecked());
+}
+
+void MainWindow::on_game15_clicked()
+{
+    gameClickLogic(15, ui->game15->isChecked());
+}
+void MainWindow::loadGameButtons(){
+    gameButtons[0] = ui->game0;
+    gameButtons[1] = ui->game1;
+    gameButtons[2] = ui->game2;
+    gameButtons[3] = ui->game3;
+    gameButtons[4] = ui->game4;
+    gameButtons[5] = ui->game5;
+    gameButtons[6] = ui->game6;
+    gameButtons[7] = ui->game7;
+    gameButtons[8] = ui->game8;
+    gameButtons[9] = ui->game9;
+    gameButtons[10] = ui->game10;
+    gameButtons[11] = ui->game11;
+    gameButtons[12] = ui->game12;
+    gameButtons[13] = ui->game13;
+    gameButtons[14] = ui->game14;
+    gameButtons[15] = ui->game15;
+
+
+}
+void MainWindow::returnToStudy(){
+    setPage(STUDY);
+}
+
+void MainWindow::on_mainLogin_clicked()
+{
+    if(menu == 0)
+        menu = new LoginMenu(this, this, &networkedManager);
+    if(friendMenu == 0)
+        friendMenu = new Friends(this, this, &networkedManager);
+    menu->exec();
+}
+void MainWindow::passToLogin(int code){
+    QMetaObject::invokeMethod(menu,"handleLogin", Q_ARG(int, code));
+    if(code == 2){
+        ui->friendButton->setEnabled(true);
+        ui->mainLogin->setEnabled(false);
+        friendMenu->setOurName(loggedInName);
+        ui->statusBar->showMessage("Logged in as " + loggedInName);
+    }
+}
+void MainWindow::passToRegister(int code){
+    QMetaObject::invokeMethod(menu,"handleRegister", Q_ARG(int, code));
+}
+void MainWindow::passFriendAdd(int code){
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+
+    QMetaObject::invokeMethod(friendMenu,"handleAdd", Q_ARG(int, code));
+}
+
+void MainWindow::on_friendButton_clicked()
+{
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+    QString qss = QString("");
+    ui->friendButton->setStyleSheet(qss);    friendMenu->exec();
+}
+void MainWindow::passFriendUpdate(QString online, QString offline){
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+
+    QMetaObject::invokeMethod(friendMenu,"handleUpdate", Q_ARG(QString, online), Q_ARG(QString, offline));
+}
+void MainWindow::passFriendRemove(int code){
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+
+    QMetaObject::invokeMethod(friendMenu,"handleFriendRemove", Q_ARG(int, code));
+}
+void MainWindow::passPm(QString friendName, QString message){
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+
+    if(!friendMenu->isVisible()){
+        QMetaObject::invokeMethod(this,"newPm");
+
+
+    }
+    QMetaObject::invokeMethod(friendMenu,"handlePm", Q_ARG(QString, friendName), Q_ARG(QString, message));
+}
+void MainWindow::newPm(){
+    QString yellow = "* { background-color: rgb(255,255,0) }";
+
+    ui->friendButton->setStyleSheet(yellow);
+}
+
+void MainWindow::passSentPm(QString friendName, QString message){
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+
+    QMetaObject::invokeMethod(friendMenu,"handleSentPm", Q_ARG(QString, friendName), Q_ARG(QString, message));
+}
+void MainWindow::passUserName(){
+    if(friendMenu == 0)
+        friendMenu = new Friends(this,this,&networkedManager);
+
+    friendMenu->setOurName(loggedInName);
+}
+
+void MainWindow::on_mainMainReturn_clicked()
+{
+    //ui->stackedWidget->setCurrentIndex(MAINPAGE);
+    int current = ui->stackedWidget->currentIndex();
+    if(current == STUDY){
+        study.clean();
+        countdownClock->stopClock();
+        c->stopClock();
+        if(multiStudy)
+            networkedManager.sendExit();
+    }
+
+
+    returnToMain();
+}

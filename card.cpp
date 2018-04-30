@@ -4,7 +4,7 @@ Card::Card()
 {
 
 }
-Card::Card(QString code, QString front, QString back, QString audio, QString hint,int interval, int past, int numDone, int stage, QString type){
+Card::Card(QString code, QString front, QString back, QString audio, QString hint, int interval, int past, int numDone, int stage, QString type, int num){
     this->code = code;
     this->front = front;
     this->back = back;
@@ -23,6 +23,7 @@ Card::Card(QString code, QString front, QString back, QString audio, QString hin
     this->score = 100;
     this->prevDone = false;
     initLevel = -1;
+    cardNum = num;
     this->level = genLevel(this->past, this->interval, this->numDone);
 }
 Card::Card(QString test){

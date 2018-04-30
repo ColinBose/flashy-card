@@ -4,6 +4,7 @@
 #include <QtDebug>
 #define CODELENGTH 6
 #define STANDARDDAILY 20
+#define STANDARDINTERVAL 30
 struct statData{
     int completed;
     int attempted;
@@ -12,20 +13,30 @@ struct statData{
     QTime studyTime;
     int strong, learning, longlearning, longstruggle, newStrong, newWeak;
 };
+struct shortCard{
+    QString front;
+    QString back;
+    QString cardNum;
+    QString sound;
+    int unit;
+};
 
 class DataManager
 {
 public:
     DataManager();
     QSqlQuery getDecks();
+    void updateDeckID(QString id, QString deckName);
     bool createDeck(QString name, int maxInterval, int dailyUpdates);
     bool addCard(QString deck, QString front, QString back);
     bool fastAddCard(QString deck, QString front, QString back, QString sound, int unit, int index);
     int fastIndex(QString deck);
     int getCurrentDue(QString deck);
+    void importDeckFromFile(QString deckName, QList<shortCard> cardList);
     int getDailyDue(QString deck);
     void setDailyDue(QString deck, int numDue);
     void checkDailyReset();
+    QString addImportDeck(QString deckID, QString deckName);
     QSqlQuery getTodaysStats();
     void setInactive(QString deck, int unit);
     void setActive(QString deck, int unit);
@@ -42,14 +53,18 @@ public:
     int getInterval(QString deck);
     void addDaysToStats();
     QSqlQuery getAllActive();
+    QSqlQuery getCardsForExport(QString deck);
     void updateCardLevels(int strong, int learning, int longLearning, int longStruggle, int newStrong, int newWeak);
     void updateStats(int attempted, int correct, int avgPercent, int newCards, QTime studyTime);
     QList<statData> getHistory(QDate start );
+    int addALLCard(QList<shortCard> cardList, QString deckName);
+    QString getDeckId(QString deckName);
 private:
     bool tableCreation();
     QSqlDatabase db;
     bool createDeckTable();
     bool createCardTable();
+    bool deckExists(QString deckName);
     bool createStatTable();
     void checkTodayStat(QString date);
     void reFillStats(QStringList days, QDate first);

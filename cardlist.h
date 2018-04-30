@@ -24,6 +24,7 @@ public:
     void setCurrentNull();
     void setIndex(QString code);
     bool checkFirstFew();
+    bool findCard(Card **c, int cardNum);
     QStringList checkTypes();
 
 

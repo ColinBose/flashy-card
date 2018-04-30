@@ -12,9 +12,6 @@ CardList::CardList()
 void CardList::pushFront(Card c){
     len++;
     node * n = new node();
-    int s = sizeof(node);
-    int p = sizeof(c);
-   // n->c = c;
     n->card.front = c.front;
     n->index = index++;
     if(index == 1){
@@ -55,6 +52,7 @@ void CardList::display(){
 bool CardList::empty(){
     return head == NULL;
 }
+
 bool CardList::next(Card ** c){
     if(current == NULL){
         if(head == NULL)
@@ -199,4 +197,20 @@ QStringList CardList::checkTypes(){
         n = n->next;
     }
     return types;
+}
+
+bool CardList::findCard(Card **c, int cardNum){
+    node * n = head;
+    if(n == NULL)
+        return false;
+    do{
+        if(n->card.cardNum == cardNum){
+            *c = &n->card;
+            curIndex = n->index;
+            return true;
+        }
+        n = n->next;
+    }while(n != NULL);
+
+    return false;
 }

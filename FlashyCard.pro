@@ -23,7 +23,13 @@ SOURCES += main.cpp\
     studyclock.cpp \
     grammarpuller.cpp \
     statinfo.cpp \
-    graph.cpp
+    graph.cpp \
+    network.cpp \
+    multimanager.cpp \
+    loginmenu.cpp \
+    sha256.cpp \
+    friends.cpp \
+    encryption.cpp
 
 HEADERS  += mainwindow.h \
     datamanager.h \
@@ -36,7 +42,15 @@ HEADERS  += mainwindow.h \
     studyclock.h \
     grammarpuller.h \
     statinfo.h \
-    graph.h
+    graph.h \
+    network.h \
+    multimanager.h \
+    loginmenu.h \
+    sha256.h \
+    friends.h \
+    encryption.h
 
 FORMS    += mainwindow.ui \
-    graph.ui
+    graph.ui \
+    loginmenu.ui \
+    friends.ui
