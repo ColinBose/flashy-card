@@ -4,6 +4,7 @@
 #include <QtSql>
 #include <QtDebug>
 #include <QList>
+#include <semaphore.h>
 struct fbCard{
     QString front;
     QString back;
@@ -39,6 +40,7 @@ private:
     bool createUserTable();
     bool createCardTable();
     bool tableCreation();
+    sem_t dbLock;
 };
 
 #endif // DATAMANAGER_H

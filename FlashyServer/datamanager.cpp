@@ -8,6 +8,7 @@ DataManager::DataManager()
     db.setDatabaseName(path);
     db.open();
     tableCreation();
+    sem_init(&dbLock, 0, 1);
 }
 
 bool DataManager::tableCreation(){
@@ -184,6 +185,7 @@ QStringList DataManager::getDeckList(){
 
 }
 void DataManager::addCards(QString deckID, QStringList cards){
+    sem_wait(&dbLock);
     db.transaction();
     QSqlQuery query(db);
     query.prepare("INSERT INTO CardTable (Deck, CardNum, Front,Back) VALUES(?,?,?,?)");
@@ -200,16 +202,22 @@ void DataManager::addCards(QString deckID, QStringList cards){
         query.bindValue(1,code);
         query.bindValue(2,front);
         query.bindValue(3,back);
-        query.exec();
+        if(!query.exec()){
+            qDebug() << "Error in add cards";
+            printError(query);
+        }
     }
     db.commit();
+    sem_post(&dbLock);
     updateCardCount(deckID);
 }
 void DataManager::updateCardCount(QString deckId){
+    sem_wait(&dbLock);
     QSqlQuery query(db);
-    query.prepare("SELECT COUNT(*) FROM CardTable WHERE Deck = ?");
+    query.prepare("SELECT COUNT(_id) FROM CardTable WHERE Deck = ?");
     query.bindValue(0, deckId);
     if(!query.exec()){
+        sem_post(&dbLock);
         qDebug() << "Error in updateCardCount";
         printError(query);
     }
@@ -221,9 +229,11 @@ void DataManager::updateCardCount(QString deckId){
     query.bindValue(0, total);
     query.bindValue(1, deckId);
     if(!query.exec()){
+        sem_post(&dbLock);
         qDebug() << "Error in updateCardCount";
         printError(query);
     }
+    sem_post(&dbLock);
 }
 
 QList<fbCard> DataManager::getAllCards(QString deckID){

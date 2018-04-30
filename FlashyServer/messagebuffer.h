@@ -4,6 +4,7 @@
 #define MAXMESSAGE 1024
 #include <QString>
 #include <stdio.h>
+#include <semaphore.h>
 #include <QStringList>
 class MessageBuffer
 {
@@ -16,6 +17,7 @@ public:
 private:
     char buffer[MAXCLIENTS * MAXMESSAGE];
     int pointerLocation[MAXCLIENTS];
+    sem_t dataLock;
 
 };
 

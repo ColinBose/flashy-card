@@ -1,25 +1,30 @@
 #include "messagebuffer.h"
+#include <QDebug>
 MessageBuffer::MessageBuffer()
 {
     memset(&buffer, 'Z', MAXCLIENTS * MAXMESSAGE);
     memset(&pointerLocation, 0, MAXCLIENTS * sizeof(int));
+    sem_init(&dataLock, 0 ,1);
 }
 QStringList MessageBuffer::putData(char buff[], int len, int sock){
+    sem_wait(&dataLock);
     int copyLength = MAXMESSAGE - pointerLocation[sock];
-    int remainingDataLen = 0;
+    int remainingDataLen = len;
     if(copyLength < len){
         //have parts of two different packets
-        remainingDataLen = len - copyLength;
+        //remainingDataLen = len - copyLength;
         len = copyLength;
     }
+    int writtenData = 0;
     memcpy(buffer+ (MAXMESSAGE*sock + pointerLocation[sock]), buff, len);
+    remainingDataLen  -= len;
+    writtenData+= len;
     pointerLocation[sock] += len;
     QStringList retPackets;
     int endData =1;
     while(endData != 0){
         if(pointerLocation[sock] == 0)
             break;
-
         //Gets the first occurance of '\0' - finds the end of the packet - if endData = 0 then no end was found
         QString indvPacket  = getPacketData(buffer + (MAXMESSAGE*sock), pointerLocation[sock], &endData);
         if(indvPacket.length() > 0)
@@ -30,28 +35,39 @@ QStringList MessageBuffer::putData(char buff[], int len, int sock){
             pointerLocation[sock] -= endData;
             //Copy the back half of the message(second packet), to the front of the buffer
             memcpy(buffer + MAXMESSAGE*sock, buffer + (MAXMESSAGE*sock + endData), pointerLocation[sock]);
-
             //copy the rest of the buffer into the buffer...generally this will do absolutely nothing.
-            memcpy(buffer + (MAXMESSAGE*sock+pointerLocation[sock]), buff, remainingDataLen);
-            pointerLocation[sock] += remainingDataLen;
+            int maxCopy = MAXMESSAGE - pointerLocation[sock];
+            int realLen = remainingDataLen;
+            if(remainingDataLen > maxCopy)
+                realLen = maxCopy;
+            memcpy(buffer + (MAXMESSAGE*sock+pointerLocation[sock]), buff+writtenData, realLen);
+            pointerLocation[sock] += realLen;
+
+            writtenData+=realLen;
+            remainingDataLen -= realLen;
 
         }
     }
-
+    sem_post(&dataLock);
+    for(int i = 0; i < retPackets.length(); i++)
+        qDebug() << retPackets[i];
     return retPackets;
 
 }
 QString MessageBuffer::getData(int sd){
+    sem_wait(&dataLock);
     char buff[MAXMESSAGE] = {0};
     memcpy(&buffer, buffer + (MAXMESSAGE * sd), pointerLocation[sd]);
     pointerLocation[sd] = 0;
     QString ret(buffer);
+    sem_post(&dataLock);
     return ret;
 }
 QString MessageBuffer::getPacketData(char * buffer, int len, int * end){
     int last = 0;
     QString ret;
-
+    char test[1024] = {'z'};
+    memcpy(&test, buffer, len);
     char buff[MAXMESSAGE];
     for(int i = 0; i < len; i++){
         if(buffer[i] == '\0'){

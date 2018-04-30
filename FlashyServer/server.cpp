@@ -1,5 +1,5 @@
 #include "server.h"
-#define UTILITYWORKERS 4
+#define UTILITYWORKERS 0
 int epoll_fd;
 sem_t readReady;
 sem_t utilitySem;
