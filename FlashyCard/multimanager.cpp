@@ -283,9 +283,6 @@ void MultiManager::handleExportResponse(QString packet){
 }
 void MultiManager::handleDeckListResponse(QString packet){
     QStringList parts = packet.split('~');
-    for(int i = 1; i < parts.length(); i++){
-        qDebug() << "NEW DECK: " + parts[i];
-    }
     parts.pop_front();
     mw->updateImportList(parts);
 }
@@ -461,10 +458,6 @@ void MultiManager::joinStudyRoom(QString packet){
             continue;
         currentCards.push_back(cards[i].toInt());
     }
-    qDebug() << "Current users;";
-    for(int i = 0; i < userList.length(); i++){
-        qDebug() << userList[i].name;
-    }
 
     QMetaObject::invokeMethod(mw, "joinMultiStudy",Qt::QueuedConnection);
 
@@ -562,10 +555,8 @@ void MultiManager::handleNextCard(QString packet){
                 userList[j].lastScore = lastScore.toInt();
             }
         }
-        qDebug() << "The user: " + name + " Scored " + lastScore + " Last round, total score = " + score;
-        qDebug() << "The next card should be: " + cardNum;
+
     }
-    qDebug() << "Current round is set to: " + currentRound;
     //mw->multiLoadQuestion(cardNum.toInt());
     copyAndSendScores();
 
@@ -584,7 +575,6 @@ void MultiManager::newUserJoined(QString packet){
     u.startScore = 0;
     userList.push_back(u);
 
-    qDebug() << "New user joined! " + newUser;
 }
 void MultiManager::endSession(QString packet){
     QStringList parts = packet.split("~");
@@ -617,7 +607,6 @@ void MultiManager::endSession(QString packet){
 }
 void MultiManager::closeConnect(){
     close(sock);
-    qDebug() << "Closed the socket";
     sock = -1;
 
 }
@@ -661,7 +650,7 @@ void MultiManager::handleTick(QString packet){
         if(userList[i].name == name){
             userList[i].score++;
             //update list here
-            qDebug() << name + " Score a point!";
+
         }
     }
     //QMetaObject::invokeMethod(mw, "updateScores", Q_ARG(QList<users>, userList));
@@ -669,7 +658,7 @@ void MultiManager::handleTick(QString packet){
 
 }
 void MultiManager::multiNoLongerExists(QString packet){
-    qDebug() << "Room gone";
+
     QMetaObject::invokeMethod(mw, "roomGone", Qt::QueuedConnection);
 
 }

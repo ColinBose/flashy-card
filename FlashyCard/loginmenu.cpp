@@ -20,7 +20,6 @@ void LoginMenu::on_loginLoginButton_clicked()
 {
     QString name = ui->loginUser->text();
     QString pass = ui->loginPass->text();
-    qDebug() << "Name: " + name + " Pass: " + pass;
     if(name.length() == 0)
         return;
     if(pass.length() == 0)

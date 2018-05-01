@@ -124,12 +124,10 @@ void CardList::removeCur(){
     if(cur->index == curIndex){
         if(cur->next != NULL){
             head = cur->next;
-            qDebug() << "Removing: " + cur->card.front;
             free(cur);
             len--;
             return;
         }else{
-            qDebug() << "Removing: " + cur->card.front;
             free(cur);
             head = NULL;
             tail = NULL;
@@ -143,7 +141,6 @@ void CardList::removeCur(){
     while(cur->next != NULL){
         if(cur->next->index == curIndex){
             if(cur->next->next == NULL){
-                qDebug() << "Removing: " + cur->card.front;
                 //tail
                 len--;
                 tail = cur;
@@ -151,7 +148,6 @@ void CardList::removeCur(){
                 cur->next = NULL;
                 return;
             }
-            qDebug() << "Removing: " + cur->card.front;
             hold = cur->next;
             cur->next = cur->next->next;
             free(hold);

@@ -41,9 +41,6 @@ void Graph::doGraph(int index){
     if(ui->radioComplete->isChecked()){
         graphComplete(dataList);
     }
-    else if(ui->radioAverage->isChecked()){
-        graphPercent(dataList);
-    }
     else if(ui->radioNew->isChecked()){
         graphNew(dataList);
     }

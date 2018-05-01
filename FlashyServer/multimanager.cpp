@@ -335,6 +335,10 @@ void MultiManager::createMultiSession(int sock, QStringList parts){
     QString send = PACKDESC[MLTCRT];
     send += '~';
     send += newName;
+    send += '~';
+    send += QString::number(newSession.uniqueId);
+    send += '~';
+    send += QString::number(newSession.id);
     send += '\0';
     sendAllData(sock, send);
 

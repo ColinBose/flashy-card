@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>10</number>
+     <number>5</number>
     </property>
     <widget class="QWidget" name="Main">
      <widget class="QTableWidget" name="mainDeckView">
@@ -784,7 +784,7 @@
       <property name="geometry">
        <rect>
         <x>340</x>
-        <y>160</y>
+        <y>220</y>
         <width>121</width>
         <height>31</height>
        </rect>
@@ -802,7 +802,7 @@
       <property name="geometry">
        <rect>
         <x>340</x>
-        <y>200</y>
+        <y>270</y>
         <width>121</width>
         <height>31</height>
        </rect>
@@ -820,7 +820,7 @@
       <property name="geometry">
        <rect>
         <x>340</x>
-        <y>240</y>
+        <y>310</y>
         <width>121</width>
         <height>31</height>
        </rect>

@@ -441,13 +441,11 @@ void MainWindow::singleStudyLoadQuestion(){
 }
 void MainWindow::multiLoadQuestion(int cardNum){
     if(cardNum == -2){
-        qDebug() << "waiting for next question";
         ui->studyAnswerButton->setEnabled(false);
         answerLock = true;
         return;
     }
     if(networkedManager.isIndependant()){
-        qDebug() << "Independant, loading normal question";
         singleStudyLoadQuestion();
         return;
     }
@@ -459,7 +457,6 @@ void MainWindow::multiLoadQuestion(int cardNum){
 
     //No cards in reserve and current card already completed
     if(!study.getMultiNext(&curCard, cardNum)){
-        qDebug() << "No card at current, a new one will come soon!";
         networkedManager.sendFakeResponse();
         ui->studyFront->setText("No current card, wait for others to finish current round");
     }
@@ -714,7 +711,6 @@ void MainWindow::loadCollection(QString deck){
 
 
     }
-    qDebug() << "Complete loading";
 
     activeList = setActiveInactive(units,miniList);
     populateUnitList(units, activeList);
@@ -972,7 +968,6 @@ void MainWindow::on_mainConnect_clicked()
         displayMessage("Error connecting to server");
         return;
     }
-    qDebug() << "Connected to sever";
     networkedManager.setConnected(fd);
     ui->mainConnect->setEnabled(false);
     pthread_t networkThread;
@@ -1130,7 +1125,6 @@ void MainWindow::updateRoomList(){
     int rows = 0;
     ui->multiLobbyTable->setHorizontalHeaderLabels(headers);
     for(int i = 0; i < rooms.length(); i++){
-        qDebug() << "Adding rows";
         ui->multiLobbyTable->insertRow(rows++);
         ui->multiLobbyTable->setItem(i,0,new QTableWidgetItem(rooms[i].matches));
         ui->multiLobbyTable->setItem(i,1,new QTableWidgetItem(rooms[i].members));
@@ -1146,12 +1140,12 @@ void MainWindow::joinMultiStudy(){
     doBasicStudySetup();
 
     if(networkedManager.isIndependant()){
-        pthread_t clock;
-        pthread_create(&clock, 0, cdThread, (void *)0);
         study.loadMultiCardList(db, networkedManager.getCardList(), true);
         multiLoadQuestion(-1);
     }
     else{
+        pthread_t clock;
+        pthread_create(&clock, 0, cdThread, (void *)0);
         study.loadMultiCardList(db, networkedManager.getCardList(), false);
         multiLoadQuestion(-2);
     }
@@ -1181,6 +1175,9 @@ void MainWindow::newMultiCreated(){
 }
 void MainWindow::doBasicStudySetup(){
     study.setDeck(curDeck);
+    if(!study.setSession(db))
+        return;
+
     study.loadGrammar(db);
     int interval = db.getInterval(curDeck);
     study.setMaxInterval(interval);

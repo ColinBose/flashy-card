@@ -11,14 +11,11 @@ void Encryption::addSocket(int sock, int key){
     keys[sock] = key;
     sentLocation[sock] = 0;
     recvLocation[sock] = 0;
-    qDebug() << "Encryption KEY IS SET TO : " + QString::number(key);
 }
 QByteArray Encryption::encrypt(QByteArray input, int sock){
 
     int len = input.length();
     char * thisKey = (char *)malloc(len);
-   // qDebug() << "Encrypting with key: " + QString(thisKey);
-   // qDebug() << "Encrypting Length = " + QString::number(len);
     genKey(thisKey, sock, len, true);
     unsigned int left, right;
     for(int i = 0; i < len; i++){
@@ -42,8 +39,6 @@ QByteArray Encryption::encrypt(QByteArray input, int sock){
 void Encryption::decrypt(char * buffer, int sock, int len){
     char * thisKey = (char *)malloc(len);
     genKey(thisKey, sock, len, false);
-   // qDebug() << "Decrypting with key: " + QString(thisKey);
-   // qDebug() << "Decrypting Length = " + QString::number(len);
     unsigned int left, right;
     for(int i = 0; i < len; i++){
         unsigned char c = buffer[i];
@@ -52,8 +47,6 @@ void Encryption::decrypt(char * buffer, int sock, int len){
         c = buffer[i];
         left = c/16;
         right = c%16;
-       // left = floor(buffer[i]/16);
-        //right = buffer[i] % 16;
         //swap halves
         buffer[i] = left + right*16;
 
@@ -90,13 +83,6 @@ void Encryption::genKey(char *key, int sock, int len, bool send){
         start = sentLocation[sock];
     else
         start = recvLocation[sock];
-
-    if(send){
-        qDebug() << "Encrypting with start location: " + QString::number(start);
-    }
-    else{
-        qDebug() << "Decrypting with start location: " + QString::number(start);
-    }
     for(int i = 0; i < len; i++){
         key[i] = MASTERKEY[start % MASTERLENGTH];
         start += skip;

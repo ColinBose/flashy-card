@@ -329,7 +329,7 @@
    <widget class="QRadioButton" name="radioComplete">
     <property name="geometry">
      <rect>
-      <x>20</x>
+      <x>150</x>
       <y>40</y>
       <width>95</width>
       <height>20</height>
@@ -340,19 +340,6 @@
     </property>
     <property name="checked">
      <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QRadioButton" name="radioAverage">
-    <property name="geometry">
-     <rect>
-      <x>150</x>
-      <y>40</y>
-      <width>95</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Average</string>
     </property>
    </widget>
    <widget class="QRadioButton" name="radioNew">
