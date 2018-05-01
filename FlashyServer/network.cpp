@@ -162,7 +162,6 @@ int readData(int sd, MultiManager * manager){
 
             e.decrypt(buffer, sd, n);
            // qDebug() << buffer;
-            qDebug() << "Length Read: " + QString::number(n);
             QStringList packets = manager->putData(buffer, n, sd);
             for(int i = 0; i < packets.length(); i++){
                 totalRecv++;

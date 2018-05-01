@@ -11,11 +11,18 @@ Session::Session()
         reviewList.push_back(f);
     }
     sem_init(&someLock, 0, 1);
+    sem_init(&outsideLock, 0, 1);
 
 }
 bool Session::isOpen(){
     return userList.length() < MAXUSERS;
 
+}
+void Session::lock(){
+    sem_wait(&outsideLock);
+}
+void Session::unLock(){
+    sem_post(&outsideLock);
 }
 
 void Session::setMaxCard(){

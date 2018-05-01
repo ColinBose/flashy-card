@@ -460,6 +460,7 @@ void MultiManager::handleStudyJoin(int sock, QStringList parts){
         send = PACKDESC[MLTFULL];
     }
     else{
+        studySessions[index].lock();
         //Send join data
         send = PACKDESC[MLTDAT];
         //Get all current users
@@ -509,6 +510,7 @@ void MultiManager::handleStudyJoin(int sock, QStringList parts){
         for(int i = 0; i < studySessions[index].userList.length()-1; i++){
             sendAllData(studySessions[index].userList[i].sock, send);
         }
+        studySessions[index].unLock();
     }
 
 
@@ -617,6 +619,7 @@ void MultiManager::removeClient(int sd, bool remove){
     if(remove){
         epollRemove(sd);
         messages.resetDataPointer(sd);
+        qDebug() << "Client Disconected;";
     }
 
 

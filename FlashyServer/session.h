@@ -60,6 +60,8 @@ public:
     void userUnlock();
     int currentRound = 0;
     bool overFull();
+    void lock();
+    void unLock();
     int numUsers();
 private:
     int usersRemoving = 0;
@@ -71,6 +73,7 @@ private:
     void bumpTime();
     bool checkForReview(QString back);
     QString getNextCard();
+    sem_t outsideLock;
 
 };
 

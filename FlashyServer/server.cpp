@@ -1,5 +1,5 @@
 #include "server.h"
-#define UTILITYWORKERS 0
+#define UTILITYWORKERS 4
 int epoll_fd;
 sem_t readReady;
 sem_t utilitySem;
@@ -111,6 +111,7 @@ void * pollThread(void * args){
 void epollRemove(int fd){
 
     close(fd);
+    currentUsers--;
 }
 
 void * workerThread(void * args){
@@ -141,7 +142,7 @@ void * statsPoll(void * args){
         std::pair<int, int> netCpu = manager.statTick(currentUsers, eventStuff.first, eventStuff.second);
         if(started < UTILITYWORKERS){
             if(lastThread < QTime::currentTime()){
-                if(netCpu.first > 5){
+                if(netCpu.first > 2){
 
                     //Network
                     utilitySigns[started] = true;
@@ -163,8 +164,9 @@ void * statsPoll(void * args){
         }
         else{
             if(lastThread < QTime::currentTime()){
-                if(netCpu.first - netCpu.second < -5){
+                if(netCpu.first - netCpu.second < -2){
                     //cpu lagging
+                    qDebug() << "Transfering NETWORK thread to handle CPU";
                     lastThread = QTime::currentTime();
                     lastThread = lastThread.addSecs(10);
                     for(int i = 0; i < UTILITYWORKERS; i++){
@@ -174,8 +176,9 @@ void * statsPoll(void * args){
                         }
                     }
                 }
-                else if(netCpu.first - netCpu.second > 5){
+                else if(netCpu.first - netCpu.second > 2){
                     //network lagging
+                    qDebug() << "Transfering CPU thread to handle NETWORK";
                     lastThread = QTime::currentTime();
                     lastThread = lastThread.addSecs(10);
                     for(int i = 0; i < UTILITYWORKERS; i++){
@@ -197,13 +200,11 @@ void Server::passMw(MainWindow *m){
 void * utilityThread(void *args){
     int num = *(int *)args;
     int sock;
-    qDebug() << "Utility #: " + QString::number(num);
     sem_wait(&utilitySem);
-    qDebug() << "Utility Thread Started";
     if(utilitySigns[num])
-        qDebug() << "Network Thread";
+        qDebug() << "Network Thread Started";
     else
-        qDebug() << "CPU Thread";
+        qDebug() << "CPU Thread Started";
 
     while(RUNNING){
         if(utilitySigns[num]){

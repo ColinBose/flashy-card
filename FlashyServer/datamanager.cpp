@@ -8,6 +8,7 @@ DataManager::DataManager()
     db.setDatabaseName(path);
     db.open();
     tableCreation();
+    testQuery = new QSqlQuery(db);
     sem_init(&dbLock, 0, 1);
 }
 
@@ -158,6 +159,7 @@ void DataManager::addCard(QString deckID, QString cardNum, QString front, QStrin
     }
 }
 QStringList DataManager::getDeckList(){
+
     QSqlQuery query(db);
     query.prepare("SELECT * FROM DeckTable");
     if(!query.exec()){
@@ -217,7 +219,6 @@ void DataManager::updateCardCount(QString deckId){
     query.prepare("SELECT COUNT(_id) FROM CardTable WHERE Deck = ?");
     query.bindValue(0, deckId);
     if(!query.exec()){
-        sem_post(&dbLock);
         qDebug() << "Error in updateCardCount";
         printError(query);
     }
@@ -229,7 +230,6 @@ void DataManager::updateCardCount(QString deckId){
     query.bindValue(0, total);
     query.bindValue(1, deckId);
     if(!query.exec()){
-        sem_post(&dbLock);
         qDebug() << "Error in updateCardCount";
         printError(query);
     }
@@ -237,37 +237,45 @@ void DataManager::updateCardCount(QString deckId){
 }
 
 QList<fbCard> DataManager::getAllCards(QString deckID){
-    QSqlQuery query(db);
+    sem_wait(&dbLock);
+    //QSqlQuery query(db);
     QList<fbCard> retList;
-    query.prepare("SELECT CardNum, Front, Back from CardTable WHERE Deck = ?");
-    query.bindValue(0, deckID);
-    if(!query.exec()){
+    testQuery->prepare("SELECT CardNum, Front, Back from CardTable WHERE Deck = ?");
+    testQuery->bindValue(0, deckID);
+    if(!testQuery->exec()){
         qDebug() << "Error in getAllCards";
-        printError(query);
+        //printError(query);
+        sem_post(&dbLock);
         return retList;
     }
-    while(query.next()){
+    while(testQuery->next()){
         fbCard f;
-        f.cardNum = query.value(0).toString();
-        f.front = query.value(1).toString();
-        f.back = query.value(2).toString();
+        f.cardNum = testQuery->value(0).toString();
+        f.front = testQuery->value(1).toString();
+        f.back = testQuery->value(2).toString();
         retList.push_back(f);
     }
+    testQuery->clear();
+    sem_post(&dbLock);
     return retList;
 }
 QString DataManager::getDeckName(QString deckID){
+    sem_wait(&dbLock);
     QSqlQuery query(db);
-
     query.prepare("SELECT DeckName FROM DeckTable WHERE DeckID = ?");
     query.bindValue(0, deckID);
     if(!query.exec()){
         qDebug() << "Error in getDeckName";
         printError(query);
+        sem_post(&dbLock);
         return "";
     }
-    if(!query.next())
+    if(!query.next()){
+       sem_post(&dbLock);
        return "";
+    }
 
+    sem_post(&dbLock);
     return query.value(0).toString();
 }
 bool DataManager::registerUser(QString name, QString pass){

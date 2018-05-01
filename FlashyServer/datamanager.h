@@ -34,6 +34,7 @@ public:
     bool removeFriend(QString name, QString friendName);
 private:
     QSqlDatabase db;
+    QSqlQuery * testQuery;
 
     void updateCardCount(QString deckId);
     bool createDeckTable();
