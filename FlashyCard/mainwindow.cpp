@@ -4,6 +4,8 @@
 #define SERVERIP "127.0.0.1"
 #define SERVERPORT "7000"
 #define CONFIGFILE "conf.txt"
+#define KOREANIMPORT
+#define JAPANESEIMPORT
 StudyClock * c;
 StudyClock * countdownClock;
 MultiManager networkedManager;
@@ -30,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     networkedManager.setData(&db, this);
     loadGameButtons();
     loadConfig();
+    initialSetup();
 
 }
 
@@ -516,6 +519,9 @@ void MainWindow::loadQuestion(Card * c){
         hint = addHintToHint(hint,curCard->hint, curCard->back);
         ui->studyHintLabel->setText(hint);
         ui->studyHintEdit->setText(curCard->hint);
+    }else{
+
+        ui->studyHintLabel->setText("");
     }
     ui->studyRemaining->setText(QString::number(study.remain()));
     ui->studyAnswerEdit->setText("");
@@ -740,6 +746,7 @@ void MainWindow::populateUnitList(QStringList units, QStringList actives){
     }
     lastRowSelected = -1;
     ui->collectionUnitList->clear();
+    ui->collectionUnitList->setRowCount(0);
     ui->collectionUnitList->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->collectionUnitList->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->collectionUnitList->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -1622,4 +1629,29 @@ void MainWindow::loadConfig(){
     serverPort = line;
 
     f.close();
+}
+void MainWindow::initialSetup(){
+    if(!db.firstSetup())
+        return;
+
+    //Korean Sentence
+    db.createDeck("KoreanSentences", 30, 20);
+    db.createDeck("KoreanVocab", 30, 20);
+    db.createDeck("JapaneseSentences", 30, 20);
+    deckM.loadDeck("KoreanSentences");
+    QChar c('\t');
+    deckM.loadOnStartUp("fullsentences.txt", '\t',4);
+    deckM.doImport(db,3,2,4,1);
+
+    //Korean Vocab
+    deckM.loadDeck("KoreanVocab");
+    deckM.loadOnStartUp("betterVocab.txt",'\t',2);
+    deckM.doImport(db, 2,1,0,0);
+
+    //Japanese Sentence
+    deckM.loadDeck("JapaneseSentences");
+    deckM.loadOnStartUp("japaneseSentences.txt",'\t',3);
+    deckM.doImport(db, 3,1,0,0);
+    returnToMain();
+
 }

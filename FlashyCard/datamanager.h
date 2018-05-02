@@ -59,6 +59,7 @@ public:
     QList<statData> getHistory(QDate start );
     int addALLCard(QList<shortCard> cardList, QString deckName);
     QString getDeckId(QString deckName);
+    bool firstSetup();
 private:
     bool tableCreation();
     QSqlDatabase db;
@@ -76,6 +77,7 @@ private:
     void updateNumLeft(QString deck, int newNum);
     int getType(QString back);
     int MAXINTERVAL;
+    bool firstRun = false;
 };
 
 #endif // DATAMANAGER_H

@@ -14,6 +14,7 @@ public:
     QStringList checkLine(QChar seperator);
 
     void doImport(DataManager db, int front, int back, int unit, int sound);
+    void loadOnStartUp(QString file, QChar seperator, int lineLen);
 private:
     QString deckName;
     QString importFileName;

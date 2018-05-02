@@ -167,6 +167,9 @@ QSqlQuery DataManager::getAllActive(){
     }
     return query;
 }
+bool DataManager::firstSetup(){
+    return firstRun;
+}
 
 bool DataManager::tableCreation(){
 
@@ -174,6 +177,7 @@ bool DataManager::tableCreation(){
     if(!db.tables().contains("CardTable")){
         qDebug() << "Creating CardTable";
         check = createCardTable();
+        firstRun = true;
     }
     if(!check){
         qDebug() << "Error creating Card Table";
@@ -182,6 +186,7 @@ bool DataManager::tableCreation(){
     if(!db.tables().contains("Deck")){
         qDebug() << "Creating DeckTable";
         check = createDeckTable();
+        firstRun = true;
     }
     if(!check){
         qDebug() << "Error creating Deck Table";
@@ -190,6 +195,7 @@ bool DataManager::tableCreation(){
     if(!db.tables().contains("Stats")){
         qDebug() << "Creating Stats Table";
         check = createStatTable();
+        firstRun = true;
     }
     if(!check){
         qDebug() << "Error creating Stat Table";

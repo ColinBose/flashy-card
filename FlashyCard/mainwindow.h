@@ -267,6 +267,7 @@ private:
     void updateStats();
     void setupScoreTable();
     void clearAllStudy();
+    void initialSetup();
     void loadConfig();
 
 };

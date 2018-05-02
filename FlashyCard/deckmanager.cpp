@@ -40,6 +40,24 @@ QStringList DeckManager::checkLine(QChar seperator){
 
 
 }
+void DeckManager::loadOnStartUp(QString file, QChar seperator, int lineLen){
+    QFile f(file);
+    if(!f.open(QIODevice::ReadOnly)){
+        qDebug() << "Error opening file";
+        return;
+    }
+    lineLength = lineLen;
+    QString line;
+    sep = seperator;
+    while(!f.atEnd()){
+        line = f.readLine();
+        if(line[line.length()-1] == '\n');
+            line = line.left(line.length()-1);
+        allLines.push_back(line);
+    }
+    f.close();
+}
+
 void DeckManager::doImport(DataManager db, int front, int back, int unit, int sound){
     int totalDone = 0;
     QList<shortCard> cardList;

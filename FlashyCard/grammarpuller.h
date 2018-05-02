@@ -4,9 +4,9 @@
 #include <QString>
 #include <QFile>
 #include <QTextStream>
-const QString KOREANFILE = "kronly.txt";
-const QString ENGLISHFILE = "englist.txt";
-const QString JAPANFILE = "jpnList.txt";
+const QString KOREANFILE = "krDict.txt";
+const QString ENGLISHFILE = "engDict.txt";
+const QString JAPANFILE = "jpnDict.txt";
 class GrammarPuller
 {
 public:
