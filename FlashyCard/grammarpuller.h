@@ -6,7 +6,7 @@
 #include <QTextStream>
 const QString KOREANFILE = "kronly.txt";
 const QString ENGLISHFILE = "englist.txt";
-const QString JAPANFILE = "jpnlist.txt";
+const QString JAPANFILE = "jpnList.txt";
 class GrammarPuller
 {
 public:

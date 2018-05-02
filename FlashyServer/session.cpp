@@ -4,12 +4,7 @@ Session::Session()
 {
     id = -1;
 
-    for(int i = 0; i < 10; i++){
-        fbCard f;
-        f.front = "GameTest" + QString::number(i);
-        f.back = "GameAnswer" + QString::number(i);
-        reviewList.push_back(f);
-    }
+
     sem_init(&someLock, 0, 1);
     sem_init(&outsideLock, 0, 1);
 
@@ -277,23 +272,23 @@ bool Session::gameTime(){
     if(roundResponses < (thisRoundUsers-1))
         return false;
     int len = reviewList.length();
-    if(len < GAMEPIECES)
+    if(len < GAMEPIECES*GAMEFREQUENCY)
         return false;
-    if(currentRound % GAMEFREQUENCY == 0){
-        if(currentRound == 0)
-            return false;
-        for(int i = 0; i < GAMEPIECES; i++){
-            int index = rand() % len;
-            gameCardList.push_back(reviewList[index]);
-            reviewList.removeAt(index);
-            len--;
-        }
-        setGameString();
-        currentRound++;
-        gameMatches = 0;
-        return true;
+
+    if(currentRound == 0)
+        return false;
+    for(int i = 0; i < GAMEPIECES; i++){
+        int index = rand() % len;
+        gameCardList.push_back(reviewList[index]);
+        reviewList.removeAt(index);
+        len--;
     }
-    return false;
+    setGameString();
+    currentRound++;
+    gameMatches = 0;
+    return true;
+
+
 
 }
 bool Session::checkForReview(QString back){
@@ -309,21 +304,21 @@ void Session::setGameString(){
     int done = 0;
     QString curArr[GAMEPIECES *2];
     for(int i = 0; i < GAMEPIECES * 2; i++)
-        gameChecks[i] = 0;
+        gameChecks[i] = -1;
     while(done < GAMEPIECES){
         int index = rand() % gameCardList.length();
         int front = -1;
         int back = -1;
         while(front == -1){
             int check = rand() % (GAMEPIECES * 2);
-            if(gameChecks[check] == 0){
+            if(gameChecks[check] == -1){
                 gameChecks[check] = 1;
                 front = check;
             }
         }
         while(back == -1){
             int check = rand() % (GAMEPIECES * 2);
-            if(gameChecks[check] == 0){
+            if(gameChecks[check] == -1){
                 gameChecks[check] = 1;
                 back = check;
             }

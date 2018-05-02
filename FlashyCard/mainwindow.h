@@ -63,7 +63,6 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     void singleStudyLoadQuestion();
-    void updateImportList(QStringList list);
     void passToRegister(int code);
     void passFriendAdd(int code);
     void passFriendUpdate(QString online, QString offline);
@@ -75,6 +74,7 @@ public:
 
     QString loggedInName = "";
 public slots:
+    void updateImportList(QStringList list);
     void addSecToClock();
     void passToLogin(int code);
     void removeSecFromClock();

@@ -268,13 +268,13 @@
  <tabstops>
   <tabstop>loginUser</tabstop>
   <tabstop>loginPass</tabstop>
-  <tabstop>registerMainPass</tabstop>
-  <tabstop>registerBackToLogin</tabstop>
-  <tabstop>loginLoginButton_2</tabstop>
   <tabstop>loginLoginButton</tabstop>
-  <tabstop>loginRegisterButton</tabstop>
-  <tabstop>registerCheckPass</tabstop>
   <tabstop>registerUser</tabstop>
+  <tabstop>registerMainPass</tabstop>
+  <tabstop>registerCheckPass</tabstop>
+  <tabstop>loginLoginButton_2</tabstop>
+  <tabstop>registerBackToLogin</tabstop>
+  <tabstop>loginRegisterButton</tabstop>
  </tabstops>
  <resources/>
  <connections/>

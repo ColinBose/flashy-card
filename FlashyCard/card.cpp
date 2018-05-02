@@ -13,7 +13,7 @@ Card::Card(QString code, QString front, QString back, QString audio, QString hin
     this->stage = stage;
     this->type = type;
     this->interval = interval;
-       this->past = past;
+    this->past = past;
     this->numDone = numDone;
     if(this->numDone > 0)
         newCard = false;

@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
     networkedManager.setData(&db, this);
     loadGameButtons();
     loadConfig();
-  //  loadGame();
+
 }
 
 
@@ -200,6 +200,14 @@ void MainWindow::on_mainDeckManager_clicked()
     deckM.loadDeck(deckName);
     ui->deckTitle->setText(deckName);
     curDeck = deckName;
+    if(connected){
+        ui->deckManagerImportFromServer->setEnabled(true);
+        ui->deckManagerExport->setEnabled(true);
+    }
+    else{
+        ui->deckManagerImportFromServer->setEnabled(false);
+        ui->deckManagerExport->setEnabled(false);
+    }
     setPage(DECKMANAGER);
 }
 void MainWindow::setPage(int i){
@@ -293,6 +301,7 @@ void MainWindow::on_importSelector_currentIndexChanged(int index)
 
 void MainWindow::on_importImportButotn_clicked()
 {
+
     int front,back,unit,sound;
     front = ui->importComboFront->currentIndex();
     back = ui->importComboBack->currentIndex();
@@ -303,7 +312,14 @@ void MainWindow::on_importImportButotn_clicked()
         return;
 
     }
+    ui->importImportButotn->setEnabled(false);
     deckM.doImport(db,front,back,unit,sound);
+    ui->importImportButotn->setEnabled(true);
+    ui->importComboFront->clear();
+    ui->importComboBack->clear();
+    ui->importComboUnit->clear();
+    ui->importComboSound->clear();
+    displayMessage("Deck Imported");
 }
 
 void MainWindow::on_mainStudy_clicked()
@@ -982,6 +998,7 @@ void MainWindow::on_mainConnect_clicked()
 void MainWindow::on_deckManagerExport_clicked()
 {
     setPage(EXPORT);
+    ui->exportExportButton->setEnabled(true);
 }
 
 void MainWindow::on_exportExportButton_clicked()
@@ -998,13 +1015,17 @@ void MainWindow::on_exportExportButton_clicked()
         return;
     }
     deck = ui->deckTitle->text();
+    ui->exportExportButton->setEnabled(false);
     networkedManager.doExport(deck,description,language);
+    sleep(1);
+    displayMessage("Deck exported");
 
 }
 
 void MainWindow::on_deckManagerImportFromServer_clicked()
 {
     setPage(IMPORT);
+    ui->importGetDeck->setEnabled(true);
     networkedManager.requestDeckList();
 }
 void MainWindow::updateImportList(QStringList list){
@@ -1013,12 +1034,14 @@ void MainWindow::updateImportList(QStringList list){
     ui->importTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->importTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->importTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->importTable->setColumnCount(2);
+    ui->importTable->setColumnCount(4);
     ui->importTable->horizontalHeader()->setStretchLastSection(true);
     ui->importTable->verticalHeader()->hide();
     QStringList headers;
     headers.push_back("DeckID");
     headers.push_back("Cards");
+    headers.push_back("Language");
+    headers.push_back("Description");
     ui->importTable->setHorizontalHeaderLabels(headers);
     for(int i = 0; i < list.length(); i++){
         QStringList parts = list[i].split('\t');
@@ -1037,6 +1060,8 @@ void MainWindow::updateImportList(QStringList list){
 
         ui->importTable->setItem(i,0,new QTableWidgetItem(parts[1]));
         ui->importTable->setItem(i,1,new QTableWidgetItem(parts[5]));
+        ui->importTable->setItem(i,2,new QTableWidgetItem(parts[4]));
+        ui->importTable->setItem(i,3,new QTableWidgetItem(parts[3]));
 
     }
 }
@@ -1058,6 +1083,9 @@ void MainWindow::on_importGetDeck_clicked()
         return;
     }
     networkedManager.sendImportRequest(deckID, check);
+    ui->importGetDeck->setEnabled(false);
+    sleep(1);
+    displayMessage("Deck imported");
 }
 
 void MainWindow::on_multiStudyButton_clicked()
@@ -1178,6 +1206,8 @@ void MainWindow::doBasicStudySetup(){
     if(!study.setSession(db))
         return;
 
+    studyImproved = 0;
+    studyDeclined = 0;
     study.loadGrammar(db);
     int interval = db.getInterval(curDeck);
     study.setMaxInterval(interval);
@@ -1563,7 +1593,7 @@ void MainWindow::on_mainMainReturn_clicked()
 {
     //ui->stackedWidget->setCurrentIndex(MAINPAGE);
     int current = ui->stackedWidget->currentIndex();
-    if(current == STUDY){
+    if(current == STUDY || current == GAME){
         study.clean();
         countdownClock->stopClock();
         c->stopClock();

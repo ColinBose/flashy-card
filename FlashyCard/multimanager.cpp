@@ -58,6 +58,7 @@ void MultiManager::setDisconnected(){
     connected = false;
     sock = -1;
 }
+
 void MultiManager::setData(DataManager *d, MainWindow * m){
     db = d;
     mw = m;
@@ -284,7 +285,8 @@ void MultiManager::handleExportResponse(QString packet){
 void MultiManager::handleDeckListResponse(QString packet){
     QStringList parts = packet.split('~');
     parts.pop_front();
-    mw->updateImportList(parts);
+    QMetaObject::invokeMethod(mw, "updateImportList", Q_ARG(QStringList, parts));
+    //mw->updateImportList(parts);
 }
 void MultiManager::sendImportRequest(QString deckID, QString deckName){
     QString send = deckID;
@@ -439,6 +441,7 @@ void MultiManager::joinStudyRoom(QString packet){
     n.name = curName;
     n.score = 0;
     n.startScore = 0;
+    userList.clear();
     userList.push_back(n);
     QStringList allUsers = userPart.split('\t');
     for(int i = 0; i < allUsers.length(); i++){
@@ -498,6 +501,8 @@ void MultiManager::roomCreated(QString packet){
     n.name = curName;
     n.score = 0;
     n.startScore = 0;
+    userList.clear();
+
     userList.push_back(n);
     QMetaObject::invokeMethod(mw, "newMultiCreated", Qt::QueuedConnection);
 

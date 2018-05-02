@@ -653,6 +653,8 @@ void MultiManager::handleIndTick(int sock){
 }
 void MultiManager::handleDoneUser(int sock){
     int index = userDat[sock].studyIndex;
+    if(index == -1)
+        return;
     for(int i = 0; i < studySessions[index].userList.length(); i++){
         if(studySessions[index].userList[i].sock == sock)
             studySessions[index].userList[i].finished = true;

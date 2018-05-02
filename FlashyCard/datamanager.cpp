@@ -307,8 +307,14 @@ int DataManager::getType(QString back){
             kor++;
         else if(c >= 65 && c <=122)
             gen++;
-        else if(c > 99999 && c < 999991)
-            jpn++; //FIX THESE VALUES FOR JAPANESE CHARACTER VALUES
+        else if(c >= 12352 && c <= 12543)
+            jpn++;
+        else if(c >= 19968 && c <= 40895)
+            jpn++;
+
+        //19968 - 40895
+        //12352 - 12447
+        //12448 - 12543
 
 
     }

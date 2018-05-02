@@ -90,25 +90,46 @@ QString StudySession::loadHint(Card c, bool sentence){
     if(c.stage >= 2)
         return generalHint(c);
     QStringList testParts = c.back.split(" ");
-    if(testParts.length() < 2)
+    if(testParts.length() < 2 && c.type != "JPN")
         return generalHint(c);
     QStringList parts = c.back.split(" ");
     QString retString = "";
-    for(int i = 0; i < parts.length(); i++){
-        QString curWord = "";
-        for(int j = 0; j < parts[i].length(); j++){
-            curWord+=parts[i][j];
-            QChar newChar = parts[i][j];
-            if(gram.checkExists(c.type, curWord)){
-                 retString += "-";
+    if(c.type != "JPN"){
+        for(int i = 0; i < parts.length(); i++){
+            QString curWord = "";
+            for(int j = 0; j < parts[i].length(); j++){
+                curWord+=parts[i][j];
+                QChar newChar = parts[i][j];
+                if(gram.checkExists(c.type, curWord)){
+                     retString += "-";
+                }
+                else{
+                    retString+= newChar;
+                }
             }
-            else{
-                retString+= newChar;
-            }
-        }
-        if(i < (parts.length()-1))
-               retString+= " ";
+            if(i < (parts.length()-1))
+                   retString+= " ";
 
+        }
+    }
+    else{
+        for(int i = 0; i < parts.length(); i++){
+            QString curWord = "";
+            for(int j = 0; j < parts[i].length(); j++){
+                curWord+=parts[i][j];
+                QChar newChar = parts[i][j];
+                if(gram.checkExists(c.type, curWord)){
+                     retString += "-";
+                }
+                else{
+                    retString+= newChar;
+                    curWord = "";
+                }
+            }
+            if(i < (parts.length()-1))
+                   retString+= " ";
+
+        }
     }
     if(c.stage == 0){
 
@@ -172,7 +193,7 @@ QString StudySession::evalAnswer(Card c, QString answer, bool sentence, int * re
                 return k.vocabEval(c, answer, ret, hint);
         }
     }else if(c.type == "JPN"){
-
+        return generalSentenceEval(c, answer,ret, hint);
     }
     else
         return generalSentenceEval(c, answer,ret, hint);
@@ -235,17 +256,29 @@ int StudySession::getAverage(Card *c, int ans){
     return computeAverage(c->past, c->numDone, ans, MINCURRENTAVERAGEWEIGHT);
 }
 int StudySession::getInterval(Card *c, int ans){
-    int curInt = c->interval;
-    int curAvg = c->past;
-    int numDone = c->numDone;
-    int newInt;
-    int newAvg = computeAverage(curAvg, numDone, ans,4);
-    double pastPart, futurePart;
-    pastPart = PASTINTERVALWEIGHT * curInt;
-    futurePart = newAvg*curInt*CURRENTAVERAGEWEIGHT/100;
-    int ret = (int)round(pastPart + futurePart);
-    if(ret == 0)
-        qDebug() << "Major error here";
+    double curInt = c->interval;
+    if(curInt == 0)
+        curInt = 1;
+    double curAvg = c->past;
+    if(c->newCard)
+        curInt = 100;
+    int scoreDif = ans - curAvg;
+    double awayFromPerfect = 100.1 - ans;
+    double pastPart = curAvg * 1.35 / 100 * curInt;
+    double logScaling = log10(awayFromPerfect * 10) / log10(20) * 0.3;
+    double lossPart;
+    if(scoreDif < 0){
+        lossPart = log10(scoreDif*scoreDif) / 6 * curInt;
+    }else{
+        lossPart = 0;
+    }
+    double totalAdjust = pastPart + logScaling - lossPart + 1;
+    int ret = round(totalAdjust);
+    if(totalAdjust < 1){
+        qDebug() << "error in interval formula";
+        totalAdjust = 1;
+
+    }
     return ret;
 }
 int StudySession::computeAverage(int past, int numPast, int cur, int maxPast){

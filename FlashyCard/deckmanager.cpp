@@ -24,11 +24,15 @@ QStringList DeckManager::checkLine(QChar seperator){
         return empty;
     }
     QString line = f.readLine();
+    if(line[line.length()-1] == '\n');
+        line = line.left(line.length()-1);
     allLines.push_back(line);
     QStringList parts = line.split(seperator);
     lineLength = parts.length();
     while(!f.atEnd()){
         line = f.readLine();
+        if(line[line.length()-1] == '\n');
+            line = line.left(line.length()-1);
         allLines.push_back(line);
     }
     f.close();
@@ -83,6 +87,7 @@ void DeckManager::doImport(DataManager db, int front, int back, int unit, int so
     if(nonMatching.length() > 0){
       writeBadMatching(nonMatching, sep);
     }
+    allLines.clear();
 }
 void DeckManager::writeBadMatching(QStringList list, QChar sep){
 
