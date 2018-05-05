@@ -97,8 +97,7 @@ void * joinerThread(void * args){
         if (epoll_ctl (epoll_fd, EPOLL_CTL_ADD, sd, &event) == -1)
             fprintf(stderr, "socket() failed: %s\n", strerror(errno));
 
-        usleep(7500);
-
+        manager.nextEvent();
     }
 }
 

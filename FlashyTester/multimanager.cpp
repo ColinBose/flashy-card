@@ -185,8 +185,10 @@ void MultiManager::handleEvent(){
         signalReady();
     }
     else if(parts[0] == PACKDESC[MLTFULL]){
-        signalReady();
+        createRoom(sd);
+
     }
+    qDebug() << "Event handled";
 
 
 
@@ -206,8 +208,11 @@ void MultiManager::handleWelcome(QString packet, int sock){
     registerSocket(sock, seed);
     doJoinProcedure(sock);
 }
-void MultiManager::doJoinProcedure(int sock){
+void MultiManager::nextEvent(){
     sem_wait(&waitLock);
+}
+void MultiManager::doJoinProcedure(int sock){
+    //sem_wait(&waitLock);
     QString deckID = REALDECKID;
     QString send = "";
     send += PACKDESC[MLTREQ];
@@ -235,6 +240,37 @@ void MultiManager::doJoinProcedure(int sock){
 
 
 }
+void MultiManager::createRoom(int sock){
+    QString send;
+    QString deckID = REALDECKID;
+    send += PACKDESC[MLTNEW];
+    send += '~';
+    send += deckID;
+    send += '~';
+    send += QString::number(10);
+    send += '~';
+    send += QString::number(0);
+    send += '~';
+    send += QString::number(0);
+    send += '~';
+    char buff[1000] = {0};
+    int place, bit;
+    int cards = 0;
+    while(cards < 100){
+        int cardNum = cards;
+        place = cardNum / 7;
+        bit = cardNum % 7;
+        buff[place] += pow(2,bit);
+        cards++;
+    }
+    for(int i = 0; i <= place; i++){
+        buff[i] += 128;
+    }
+    QString bits = QString::fromLatin1(buff);
+    send += bits;
+    send += '\0';
+    sendData(sock, send);
+}
 void MultiManager::handleMultiResponse(QString packet, int sock){
     QStringList parts = packet.split('~');
     if(parts.length() < 2)
@@ -242,35 +278,7 @@ void MultiManager::handleMultiResponse(QString packet, int sock){
     QString currentRound = "0";
     if(parts[1].length() == 0){
         //create new room
-        QString send;
-        QString deckID = REALDECKID;
-        send += PACKDESC[MLTNEW];
-        send += '~';
-        send += deckID;
-        send += '~';
-        send += QString::number(10);
-        send += '~';
-        send += QString::number(0);
-        send += '~';
-        send += QString::number(0);
-        send += '~';
-        char buff[1000] = {0};
-        int place, bit;
-        int cards = 0;
-        while(cards < 100){
-            int cardNum = cards;
-            place = cardNum / 7;
-            bit = cardNum % 7;
-            buff[place] += pow(2,bit);
-            cards++;
-        }
-        for(int i = 0; i <= place; i++){
-            buff[i] += 128;
-        }
-        QString bits = QString::fromLatin1(buff);
-        send += bits;
-        send += '\0';
-        sendData(sock, send);
+        createRoom(sock);
     }else{
         //join room 1
         //qDebug() << "Joining room!!";
@@ -292,9 +300,8 @@ void MultiManager::handleMultiResponse(QString packet, int sock){
 }
 void MultiManager::roomCreated(QString packet, int sock){
    // qDebug() << "Created a new room!!";
-
-    registerNewAnswer(sock, "0", "0");
     sem_post(&waitLock);
+    registerNewAnswer(sock, "0", "0");
 }
 void MultiManager::handleNextCard(QString packet, int sock){
 
@@ -326,11 +333,10 @@ void MultiManager::sendAnswer(int sock, QString cardNum, QString currentRound){
 void MultiManager::registerNewAnswer(int sock, QString cardNum, QString currentRound){
     outEvent o;
     QTime cur = QTime::currentTime();
-    double delay = rand() % DELAY;
-    delay += DELAY;
+
 
   //  qDebug() << "Current Card Num: " + cardNum + " Current Round Num; " + currentRound;
-    cur = cur.addSecs(1);
+    cur = cur.addSecs(DELAY);
     o.curCard = cardNum;
     o.sendTime = cur;
     o.curRound = currentRound;

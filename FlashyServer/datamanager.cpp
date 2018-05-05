@@ -7,9 +7,9 @@ DataManager::DataManager()
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(path);
     db.open();
+    sem_init(&dbLock, 0, 1);
     tableCreation();
     testQuery = new QSqlQuery(db);
-    sem_init(&dbLock, 0, 1);
 }
 
 bool DataManager::tableCreation(){
@@ -93,7 +93,22 @@ bool DataManager::createUserTable(){
     }
     return true;
 }
+QString DataManager::forceAddDeck(QString deck, QString desc, QString lang, QString user){
 
+    QSqlQuery query(db);
+    query.prepare("INSERT INTO DeckTable (DeckID, DeckName,Creator,Description,Language,TotalCards) VALUES(?,?,?,?,?,?)");
+    query.bindValue(0,deck);
+    query.bindValue(1,"TESTING");
+    query.bindValue(2,user);
+    query.bindValue(3,desc);
+    query.bindValue(4,lang);
+    query.bindValue(5,0);
+    if(!query.exec()){
+        qDebug() << "Error with initial setup";
+        printError(query);
+    }
+    return "";
+}
 QString DataManager::addDeck(QString deck, QString desc, QString lang, QString user){
     QString code;
     int seed = time(NULL);
@@ -218,9 +233,9 @@ void DataManager::addCards(QString deckID, QStringList cards){
     db.commit();
     sem_post(&dbLock);
     updateCardCount(deckID);
+    sem_wait(&dbLock);
 }
 void DataManager::updateCardCount(QString deckId){
-    sem_wait(&dbLock);
     QSqlQuery query(db);
     query.prepare("SELECT COUNT(_id) FROM CardTable WHERE Deck = ?");
     query.bindValue(0, deckId);
@@ -432,12 +447,14 @@ bool DataManager::removeFriend(QString name, QString friendName){
 }
 void DataManager::doBasicTestSetup(){
     QString deckID = "AAAAAA";
-    addDeck(deckID, "Test Deck", "TESTLANG", "ADMIN");
+    forceAddDeck(deckID, "Test Deck", "TESTLANG", "ADMIN");
     QString front = "test";
     QString back = "ans";
     for(int i = 0; i < 100; i++){
-        QString insFront = front += QString::number(i);
-        QString insBack= back+= QString::number(i);
+        QString insFront = front;
+        insFront += QString::number(i);
+        QString insBack= back;
+        insBack += QString::number(i);
         addCard(deckID, QString::number(i),insFront, insBack);
     }
     updateCardCount(deckID);

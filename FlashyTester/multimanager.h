@@ -28,6 +28,7 @@ public:
     void removeClient(int sd, bool remove);
     void setFile(QString fileName);
     void setDelay(int d);
+    void nextEvent();
 private:
     QList<outEvent> outQueue;
     sem_t queueLock;
@@ -46,6 +47,7 @@ private:
     void registerNewAnswer(int sock, QString cardNum, QString currentRound);
     void sendAnswer(int sock, QString cardNum, QString currentRound);
     void signalReady();
+    void createRoom(int sock);
 };
 
 #endif // MULTIMANAGER_H

@@ -17,6 +17,7 @@ class DataManager
 public:
     DataManager();
     QString addDeck(QString deck, QString desc, QString lang, QString user);
+    QString forceAddDeck(QString deck, QString desc, QString lang, QString user);
     QString genCode();
     bool deckExists(QString code);
     void printError(QSqlQuery query);
