@@ -82,7 +82,7 @@ void epollRemove(int fd){
 void * joinerThread(void * args){
     int * num = (int *) args;
     int totalStudy = *num;
-    for(int i = 0; i < totalStudy; i++){
+    for(int i = 0; i < NUMUSERS; i++){
         int sd = connectTCPSocket(serverPort.toInt(),(char *)serverIp.toStdString().c_str());
         if(sd == -1){
             qDebug() << "Error connecting to server";
