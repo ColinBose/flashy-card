@@ -13,11 +13,12 @@ DataManager::DataManager()
 }
 
 bool DataManager::tableCreation(){
-
+    bool firstTime = false;
     bool check = true;
     if(!db.tables().contains("CardTable")){
         qDebug() << "Creating CardTable";
         check = createCardTable();
+        firstTime =true;
     }
     if(!check){
         qDebug() << "Error creating Card Table";
@@ -26,6 +27,7 @@ bool DataManager::tableCreation(){
     if(!db.tables().contains("DeckTable")){
         qDebug() << "Creating DeckTable";
         check = createDeckTable();
+        firstTime =true;
     }
     if(!check){
         qDebug() << "Error creating Deck Table";
@@ -34,10 +36,14 @@ bool DataManager::tableCreation(){
     if(!db.tables().contains("UserTable")){
         qDebug() << "Creating Stats Table";
         check = createUserTable();
+        firstTime =true;
     }
     if(!check){
         qDebug() << "Error creating Stat Table";
         return false;
+    }
+    if(firstTime){
+        doBasicTestSetup();
     }
     return true;
 
@@ -423,4 +429,16 @@ bool DataManager::removeFriend(QString name, QString friendName){
     }
     return true;
 
+}
+void DataManager::doBasicTestSetup(){
+    QString deckID = "AAAAAA";
+    addDeck(deckID, "Test Deck", "TESTLANG", "ADMIN");
+    QString front = "test";
+    QString back = "ans";
+    for(int i = 0; i < 100; i++){
+        QString insFront = front += QString::number(i);
+        QString insBack= back+= QString::number(i);
+        addCard(deckID, QString::number(i),insFront, insBack);
+    }
+    updateCardCount(deckID);
 }

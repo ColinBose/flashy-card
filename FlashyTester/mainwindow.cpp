@@ -15,6 +15,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_startButton_clicked()
 {
-    serv.startServer(1,1);
+    int delay = 0;
+    delay = ui->delayEdit->text().toInt();
+    if(delay <= 0)
+        return;
+    serv.startServer(1,1, delay);
     ui->startButton->setEnabled(false);
 }

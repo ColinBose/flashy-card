@@ -26,7 +26,7 @@ class Server
 {
 public:
     Server();
-    void startServer(int workers, int events);
+    void startServer(int workers, int events, int delay);
     void ff();
 private:
 };

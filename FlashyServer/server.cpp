@@ -15,6 +15,7 @@ Server::Server()
     sem_init(&utilitySem,0,0);
 }
 void Server::startServer(int workers, int events){
+
     pthread_t acceptThr, pollThr, multiPoll, statPoll;
     sem_init(&readReady,0,0);
 

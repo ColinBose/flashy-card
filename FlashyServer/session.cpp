@@ -98,7 +98,7 @@ bool Session::checkRound(int round){
 }
 QString Session::getReturnResponse(int * next){
     sem_wait(&someLock);
-    QString ret;
+    QString ret = "";
     updateScoring();
     double removePerc = (double)usersRemoving / thisRoundUsers;
     int length = cardList.length();

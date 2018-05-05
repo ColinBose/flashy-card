@@ -27,15 +27,17 @@ public:
     void handleEvent();
     void removeClient(int sd, bool remove);
     void setFile(QString fileName);
+    void setDelay(int d);
 private:
     QList<outEvent> outQueue;
     sem_t queueLock;
+    int DELAY = 3;
     QList<inputEvent> events;
     sem_t inEvent;
     sem_t eventLock;
     MessageBuffer messages;
-    QString REALDECKID = "";
-
+    QString REALDECKID = "AAAAAA";
+    sem_t waitLock;
     void handleWelcome(QString packet, int sock);
     void doJoinProcedure(int sock);
     void handleMultiResponse(QString packet, int sock);
@@ -43,6 +45,7 @@ private:
     void handleNextCard(QString packet, int sock);
     void registerNewAnswer(int sock, QString cardNum, QString currentRound);
     void sendAnswer(int sock, QString cardNum, QString currentRound);
+    void signalReady();
 };
 
 #endif // MULTIMANAGER_H

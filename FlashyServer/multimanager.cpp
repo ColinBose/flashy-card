@@ -304,7 +304,17 @@ void MultiManager::createMultiSession(int sock, QStringList parts){
     setUserCards(curReq,sock);
     Session newSession;
     newSession.cardBits = curReq;
-    QList<fbCard> curCards = data.getAllCards(deckID);
+    QList<fbCard> curCards;
+    int place = -1;
+    place = inCache(deckID);
+    if(place>=0){
+        curCards = cache.cards[place];
+    }
+    else{
+        curCards = data.getAllCards(deckID);
+        cache.cards.push_back(curCards);
+        cache.decks.push_back(deckID);
+    }
     for(int i = 0; i < curCards.length(); i++){
         int cardNum = curCards[i].cardNum.toInt();
         if(cardNum >= BITSETSIZE)
@@ -1066,4 +1076,12 @@ std::pair<int,int> MultiManager::statTick(int current, int totalMessage, int tot
     ret.second = avgCpu;
     QMetaObject::invokeMethod(mw, "updateDisplay",Q_ARG(int, rooms), Q_ARG(int, current), Q_ARG(int, avgNetwork), Q_ARG(int, avgCpu), Q_ARG(int, packetsOut+packetIn));
     return ret;
+}
+int MultiManager::inCache(QString deckID){
+    for(int i = 0; i < cache.decks.length(); i++){
+        if(cache.decks[i] == deckID){
+            return i;
+        }
+    }
+    return -1;
 }

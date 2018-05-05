@@ -18,7 +18,8 @@ Server::Server()
 {
 
 }
-void Server::startServer(int workers, int events){
+void Server::startServer(int workers, int events, int delay){
+    manager.setDelay(delay);
     pthread_t acceptThr, pollThr, multiPoll, joiner;
     loadConfig();
     sem_init(&readReady,0,0);

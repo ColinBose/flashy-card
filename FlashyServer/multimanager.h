@@ -6,6 +6,10 @@
 #include "messagebuffer.h"
 #include "mainwindow.h"
 #define BITSETSIZE 8000
+struct cardCache{
+    QList<QList<fbCard>> cards;
+    QStringList decks;
+};
 struct matchReturn{
     int id;
     int matches;
@@ -66,6 +70,7 @@ private:
     MainWindow * mw;
     int totalEvents = 0;
     int totalEventTime = 0;
+    cardCache cache;
 
     void addLoggedUser(QString name, int sock);
     void addEvent(outEvent o);
@@ -99,6 +104,7 @@ private:
     void sendFriendUpdate(int sock, loggedUser *l);
     void removeLoggedIn(int sock);
     void newFriendOnline(int sock);
+    int inCache(QString deckID);
 };
 
 #endif // MULTIMANAGER_H

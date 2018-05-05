@@ -57,7 +57,7 @@ MultiManager::MultiManager()
     sem_init(&inEvent,0,0);
     sem_init(&queueLock, 0, 1);
     sem_init(&eventLock, 0, 1);
-
+    sem_init(&waitLock, 0, 1);
     srand(time(NULL));
 }
 void MultiManager::pollOutEvents(){
@@ -181,10 +181,22 @@ void MultiManager::handleEvent(){
     else if(parts[0] == PACKDESC[MLTNEXT]){
         handleNextCard(packet,sd);
     }
+    else if(parts[0] == PACKDESC[MLTDAT]){
+        signalReady();
+    }
+    else if(parts[0] == PACKDESC[MLTFULL]){
+        signalReady();
+    }
+
 
 
 }
-
+void MultiManager::signalReady(){
+    sem_post(&waitLock);
+}
+void MultiManager::setDelay(int d){
+    DELAY = d;
+}
 void MultiManager::handleWelcome(QString packet, int sock){
     QStringList parts = packet.split('~');
     if(parts.length() < 2)
@@ -195,6 +207,7 @@ void MultiManager::handleWelcome(QString packet, int sock){
     doJoinProcedure(sock);
 }
 void MultiManager::doJoinProcedure(int sock){
+    sem_wait(&waitLock);
     QString deckID = REALDECKID;
     QString send = "";
     send += PACKDESC[MLTREQ];
@@ -279,7 +292,9 @@ void MultiManager::handleMultiResponse(QString packet, int sock){
 }
 void MultiManager::roomCreated(QString packet, int sock){
    // qDebug() << "Created a new room!!";
+
     registerNewAnswer(sock, "0", "0");
+    sem_post(&waitLock);
 }
 void MultiManager::handleNextCard(QString packet, int sock){
 
@@ -311,8 +326,8 @@ void MultiManager::sendAnswer(int sock, QString cardNum, QString currentRound){
 void MultiManager::registerNewAnswer(int sock, QString cardNum, QString currentRound){
     outEvent o;
     QTime cur = QTime::currentTime();
-    int delay = rand() % SENDDIFF;
-    delay += SENDMIN;
+    double delay = rand() % DELAY;
+    delay += DELAY;
 
   //  qDebug() << "Current Card Num: " + cardNum + " Current Round Num; " + currentRound;
     cur = cur.addSecs(1);
@@ -323,5 +338,5 @@ void MultiManager::registerNewAnswer(int sock, QString cardNum, QString currentR
     addEvent(o);
 }
 void MultiManager::setFile(QString fileName){
-    REALDECKID = fileName;
+   // REALDECKID = fileName;
 }

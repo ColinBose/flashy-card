@@ -41,6 +41,7 @@ private:
     bool createUserTable();
     bool createCardTable();
     bool tableCreation();
+    void doBasicTestSetup();
     sem_t dbLock;
 };
 
