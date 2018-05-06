@@ -2,7 +2,7 @@
 #define ENCRYPTION_H
 #include <QString>
 #include <QByteArray>
-#define MAXSOCK 100000
+#define MAXSOCK 200000
 #define MASTERLENGTH 5000
 #define SEED 10
 class Encryption

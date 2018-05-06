@@ -1,6 +1,6 @@
 #ifndef MESSAGEBUFFER_H
 #define MESSAGEBUFFER_H
-#define MAXCLIENTS 100000
+#define MAXCLIENTS 200000
 #define MAXMESSAGE 1024
 #include <QString>
 #include <stdio.h>

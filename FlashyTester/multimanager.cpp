@@ -188,9 +188,6 @@ void MultiManager::handleEvent(){
         createRoom(sd);
 
     }
-    qDebug() << "Event handled";
-
-
 
 }
 void MultiManager::signalReady(){

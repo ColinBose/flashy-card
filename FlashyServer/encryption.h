@@ -3,7 +3,7 @@
 #include <QString>
 #include <QByteArray>
 #include <semaphore.h>
-#define MAXSOCK 100000
+#define MAXSOCK 200000
 #define MASTERLENGTH 5000
 #define SEED 10
 class Encryption
